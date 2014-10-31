@@ -120,7 +120,7 @@ inline void printUsage() {
          << "  --size=VALUE        Identical to --uint64=VALUE." << endl << endl
          << "  --str=STRING        Identical to --size=VALUE --cstr=STRING, "
             "where VALUE is the length of the given STRING." << endl << endl
-         << "  --file=FILENAME     Writes the given binary file to the "
+         << "  --cfile=FILENAME     Writes the given binary file to the "
             "argument stream." << endl << endl
          << "  --outFile=FILENAME  Writes the output to the given file instead "
             "of the standard output." << endl << endl
@@ -217,8 +217,8 @@ inline CommandLineArgs parseCommandLine(const int argc,
                 r.preInput.insert(r.preInput.end(),
                                   str,
                                   str + size);
-            } else if (strncmp(argv[i] + 1u, "-file=", 6u) == 0) {
-                std::ifstream f(argv[i] + 7u,
+            } else if (strncmp(argv[i] + 1u, "-cfile=", 7u) == 0) {
+                std::ifstream f(argv[i] + 8u,
                                 std::ios::in | std::ios::binary);
                 r.preInput.insert(r.preInput.end(),
                                   std::istreambuf_iterator<char>(f),
