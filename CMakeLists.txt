@@ -9,6 +9,7 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION "2.8.12")
 PROJECT(SHAREMIND_EMULATOR "CXX")
+SET(SHAREMIND_EMULATOR_VERSION "0.1")
 
 INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/config.local" OPTIONAL)
 INCLUDE("${CMAKE_CURRENT_BINARY_DIR}/config.local" OPTIONAL)
@@ -39,6 +40,7 @@ ADD_DEFINITIONS(
     ${SharemindLibController_DEFINITIONS}
     ${SharemindLibmodapiCxx_DEFINITIONS}
     ${SharemindLibvmCxx_DEFINITIONS}
+    "-DSHAREMIND_EMULATOR_VERSION=\"${SHAREMIND_EMULATOR_VERSION}\""
 )
 
 ################################################################################

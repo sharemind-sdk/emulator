@@ -35,6 +35,10 @@
 #include "Syscalls.h"
 
 
+#ifndef SHAREMIND_EMULATOR_VERSION
+#error SHAREMIND_EMULATOR_VERSION not defined!
+#endif
+
 namespace sharemind {
 
 const char * programName = nullptr;
@@ -92,7 +96,9 @@ inline void printUsage() {
               << "\t\tThe filename of the bytecode to execute."<< std::endl
               << std::endl << "Optional arguments:" << std::endl << std::endl
               << "\t--help" << std::endl << "\t--usage" << std::endl
-              << "\t\tPrints this informative text on usage informatin."
+              << "\t\tPrints this informative text on usage information."
+              << std::endl << std::endl << "\t--version" << std::endl
+              << "\t\tPrints the version of this program." << std::endl
               << std::endl << "\t--stdin" << std::endl
               << "\t\tContinue reading the argument stream from stdin."
               << std::endl << std::endl << "\t--cstr=<string>" << std::endl
@@ -151,6 +157,10 @@ inline CommandLineArgs parseCommandLine(const int argc,
             } else if ((strcmp(argv[i] + 1u, "-help") == 0)
                        || (strcmp(argv[i] + 1u, "-usage") == 0)) {
                 printUsage();
+                throw GracefulException{};
+            } else if ((strcmp(argv[i] + 1u, "-version") == 0)) {
+                std::cerr << "Sharemind Emulator " SHAREMIND_EMULATOR_VERSION
+                          << std::endl;
                 throw GracefulException{};
             } else if (strncmp(argv[i] + 1u, "-cstr=", 6u) == 0) {
                 const char * const str = argv[i] + 7u;
