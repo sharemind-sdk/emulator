@@ -1,0 +1,10 @@
+[Module1]
+File = libsharemind_mod_algorithms.so
+[Module2]
+File = libsharemind_mod_additive3p_emu.so
+
+[ProtectionDomain1]
+Name = pd_a3p
+Kind = additive3pp
+Configuration = additive3pp.cfg
+
