@@ -87,54 +87,46 @@ inline void writeIntegralArgument(std::vector<char> & v,
 }
 
 inline void printUsage() {
-    std::cerr << "Usage: " << programName
-              << " --conf=<filename> [OPTIONS] <filename>" << std::endl
-              << std::endl << "Required arguments:" << std::endl
-              << std::endl << "\t--conf=<filename>" << std::endl
-              << "\t\tReads the configuration file from the given location."
-              << std::endl << std::endl << "\t<filename>" << std::endl
-              << "\t\tThe filename of the bytecode to execute."<< std::endl
-              << std::endl << "Optional arguments:" << std::endl << std::endl
-              << "\t--help" << std::endl << "\t--usage" << std::endl
-              << "\t\tPrints this informative text on usage information."
-              << std::endl << std::endl << "\t--version" << std::endl
-              << "\t\tPrints the version of this program." << std::endl
-              << std::endl << "\t--stdin" << std::endl
-              << "\t\tContinue reading the argument stream from stdin."
-              << std::endl << std::endl << "\t--cstr=<string>" << std::endl
-              << "\t\tWrites the literal <string> to the argument stream."
-              << std::endl << std::endl << "\t--xstr=<hexbytes>" << std::endl
-              << "\t\tWrites the given hexadecimal bytes to the argument stream."
-              << std::endl << std::endl << "\t--int16=<value>" << std::endl
-              << "\t--int32=<value>" << std::endl
-              << "\t--int64=<value>" << std::endl
-              << "\t--uint16=<value>" << std::endl
-              << "\t--uint32=<value>" << std::endl
-              << "\t--uint64=<value>" << std::endl
-              << "\t\tWrites the decimal <value> to the argument stream as "
-                 "a little-endian value of the respective type."
-              << std::endl << std::endl << "\t--bint16=<value>" << std::endl
-              << "\t--bint32=<value>" << std::endl
-              << "\t--bint64=<value>" << std::endl
-              << "\t--buint16=<value>" << std::endl
-              << "\t--buint32=<value>" << std::endl
-              << "\t--buint64=<value>" << std::endl
-              << "\t\tWrites the decimal <value> to the argument stream as "
-                 "a big-endian value of the respective type."
-              << std::endl << std::endl << "\t--size=<value>" << std::endl
-              << "\t\tIdentical to --uint64=<value>." << std::endl
-              << std::endl << "\t--str=<string>" << std::endl
-              << "\t\tIdentical to --size=<length> --cstr=<string>, "
-                 "where <length> is the length of the given <string>."
-              << std::endl << std::endl << "\t--file=<filename>" << std::endl
-              << "\t\tWrites the given binary file to the argument stream."
-              << std::endl << std::endl << "\t--outFile=<filename>" << std::endl
-              << "\t\tWrites the output to the given file instead of the "
-                 "standard output."
-              << std::endl << std::endl << "\t--forceOutFile" << std::endl
-              << "\t\tOverwrites the file given by --outFile=<filename> if the "
-                 "file already exists."
-              << std::endl << std::endl;
+    using namespace std;
+    cerr << "Usage: " << programName
+         << " --conf=FILENAME [OPTIONS] FILENAME" << endl
+         << "Runs the bytecode specified by FILENAME in an execution context "
+            "specified by the given configuration file." << endl << endl
+         << "Required arguments:" << endl << endl
+         << "  --conf=FILENAME     Reads the configuration file from the given "
+            "location." << endl << endl
+         << "  FILENAME            The filename of the bytecode to execute."
+         << endl << endl
+         << "Optional arguments:" << endl << endl
+         << "  --help, --usage     Display this help and exit."
+         << endl << endl
+         << "  --version           Output version information and exit."
+         << endl << endl
+         << "  --stdin             Continue reading the argument stream from "
+            "stdin." << endl << endl
+         << "  --cstr=STRING       Writes the literal STRING to the argument "
+            "stream." << endl << endl
+         << "  --xstr=HEXBYTES     Writes the given hexadecimal bytes to the "
+            "argument stream." << endl << endl
+         << "  --int16=VALUE, --int32=VALUE, --int64=VALUE, --uint16=VALUE"
+            ", --uint32=VALUE, --uint64=VALUE" << endl
+         << "                      Writes the decimal VALUE to the argument "
+            "stream as a little-endian value of the respective type."
+         << endl << endl
+         << "  --bint16=VALUE, --bint32=VALUE, --bint64=VALUE, --buint16=VALUE"
+            ", --buint32=VALUE, --buint64=VALUE" << endl
+         << "                      Writes the decimal VALUE to the argument "
+            "stream as a big-endian value of the respective type."
+         << endl << endl
+         << "  --size=VALUE        Identical to --uint64=VALUE." << endl << endl
+         << "  --str=STRING        Identical to --size=VALUE --cstr=STRING, "
+            "where VALUE is the length of the given STRING." << endl << endl
+         << "  --file=FILENAME     Writes the given binary file to the "
+            "argument stream." << endl << endl
+         << "  --outFile=FILENAME  Writes the output to the given file instead "
+            "of the standard output." << endl << endl
+         << "  --forceOutFile      Overwrites the file given by "
+            "--outFile=FILENAME if the file already exists." << endl << endl;
 }
 
 inline CommandLineArgs parseCommandLine(const int argc,
@@ -150,7 +142,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
             {
                 if (r.configurationFilename)
                     throw UsageException{
-                        "Multiple --conf=<filename> arguments given!"};
+                        "Multiple --conf=FILENAME arguments given!"};
                 r.configurationFilename = argv[i] + 7u;
             } else if (strcmp(argv[i] + 1u, "-stdin") == 0) {
                 r.argsFromStdin = true;
@@ -159,7 +151,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
                 printUsage();
                 throw GracefulException{};
             } else if ((strcmp(argv[i] + 1u, "-version") == 0)) {
-                std::cerr << "Sharemind Emulator " SHAREMIND_EMULATOR_VERSION
+                std::cerr << "Emulator " SHAREMIND_EMULATOR_VERSION
                           << std::endl;
                 throw GracefulException{};
             } else if (strncmp(argv[i] + 1u, "-cstr=", 6u) == 0) {
@@ -177,8 +169,8 @@ inline CommandLineArgs parseCommandLine(const int argc,
                         case '0' ... '9': return (s - '0') + 0x0;
                         default:
                             throw UsageException{
-                                "Invalid --xstr=<hexvalue> argument given!",
-                                "Invalid --xstr=<hexvalue> argument given: ",
+                                "Invalid --xstr=HEXBYTES argument given!",
+                                "Invalid --xstr=HEXBYTES argument given: ",
                                 argv[i]};
                         }
                     };
@@ -198,9 +190,9 @@ inline CommandLineArgs parseCommandLine(const int argc,
                                 (big)); \
                     } catch (const WriteIntegralArgumentException &) { \
                         throw UsageException{ \
-                                    "Invalid --" argname "=<value> argument " \
+                                    "Invalid --" argname "=VALUE argument " \
                                     "given!", \
-                                    "Invalid --" argname "=<value> argument " \
+                                    "Invalid --" argname "=VALUE argument " \
                                     "given: ", \
                                     argv[i]}; \
                     } \
@@ -234,7 +226,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
                                   std::istreambuf_iterator<char>());
             } else if (strncmp(argv[i] + 1u, "-outFile=", 9u) == 0) {
                 if (r.outFilename)
-                    throw UsageException{"Multiple --output=<filename> "
+                    throw UsageException{"Multiple --output=FILENAME "
                                          "arguments given!"};
                 r.outFilename = argv[i] + 10u;
             } else if (strcmp(argv[i] + 1u, "-forceOutFile") == 0) {
@@ -246,15 +238,15 @@ inline CommandLineArgs parseCommandLine(const int argc,
             }
         } else {
             if (r.bytecodeFilename)
-                throw UsageException{"Multiple bytecode <filename> arguments "
+                throw UsageException{"Multiple bytecode FILENAME arguments "
                                      "given!"};
             r.bytecodeFilename = argv[i];
         }
     }
     if (!r.bytecodeFilename)
-        throw UsageException{"No bytecode <filename> argument given!"};
+        throw UsageException{"No bytecode FILENAME argument given!"};
     if (!r.configurationFilename)
-        throw UsageException{"No --conf=<filename> argument given!"};
+        throw UsageException{"No --conf=FILENAME argument given!"};
     return r;
 }
 

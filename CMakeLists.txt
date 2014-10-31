@@ -22,6 +22,7 @@ ADD_COMPILE_OPTIONS(
   "$<$<STREQUAL:$<CONFIGURATION>,Release>:-fomit-frame-pointer>"
 )
 
+FIND_PROGRAM(HELP2MAN help2man)
 FIND_PACKAGE(Boost 1.56 REQUIRED COMPONENTS iostreams)
 FIND_PACKAGE(SharemindCxxHeaders REQUIRED)
 FIND_PACKAGE(SharemindLibController REQUIRED)
@@ -62,3 +63,19 @@ TARGET_LINK_LIBRARIES(Emulator
 )
 
 INSTALL(TARGETS Emulator RUNTIME DESTINATION "bin")
+
+FUNCTION(GenerateManPage)
+    SET(V "${SHAREMIND_EMULATOR_VERSION}")
+    ADD_CUSTOM_COMMAND(TARGET Emulator POST_BUILD
+            COMMAND ${HELP2MAN}
+                    -o ${CMAKE_CURRENT_BINARY_DIR}/Emulator.1
+                    --no-discard-stderr
+                    --no-info
+                    "--name=manual page for Sharemind Emulator ${V}"
+                    ${CMAKE_CURRENT_BINARY_DIR}/Emulator
+            COMMENT "Generating manual page for Emulator")
+ENDFUNCTION()
+
+IF(HELP2MAN)
+    GenerateManPage()
+ENDIF()
