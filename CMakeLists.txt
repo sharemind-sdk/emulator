@@ -68,12 +68,14 @@ FUNCTION(GenerateManPage)
     SET(V "${SHAREMIND_EMULATOR_VERSION}")
     ADD_CUSTOM_COMMAND(TARGET Emulator POST_BUILD
             COMMAND ${HELP2MAN}
-                    -o ${CMAKE_CURRENT_BINARY_DIR}/Emulator.1
+                    -o "${CMAKE_CURRENT_BINARY_DIR}/Emulator.1"
                     --no-discard-stderr
                     --no-info
                     "--name=manual page for Sharemind Emulator ${V}"
                     ${CMAKE_CURRENT_BINARY_DIR}/Emulator
             COMMENT "Generating manual page for Emulator")
+    INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/Emulator.1"
+            DESTINATION "share/man/man1")
 ENDFUNCTION()
 
 IF(HELP2MAN)
