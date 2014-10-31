@@ -89,14 +89,13 @@ inline void writeIntegralArgument(std::vector<char> & v,
 inline void printUsage() {
     using namespace std;
     cerr << "Usage: " << programName
-         << " --conf=FILENAME [OPTIONS] FILENAME" << endl
+         << " [OPTIONS] FILENAME" << endl
          << "Runs the bytecode specified by FILENAME in an execution context "
-            "specified by the given configuration file." << endl << endl
+            "specified by the given configuration file given by the --conf= "
+            "argument." << endl << endl
          << "Required arguments:" << endl << endl
          << "  --conf=FILENAME     Reads the configuration file from the given "
             "location." << endl << endl
-         << "  FILENAME            The filename of the bytecode to execute."
-         << endl << endl
          << "Optional arguments:" << endl << endl
          << "  --help, --usage     Display this help and exit."
          << endl << endl

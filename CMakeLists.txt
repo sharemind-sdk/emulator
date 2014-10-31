@@ -54,6 +54,10 @@ FILE(GLOB_RECURSE SHAREMIND_EMULATOR_HEADERS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
 ADD_CUSTOM_TARGET("include_Emulator_headers_in_IDE"
                   SOURCES ${SHAREMIND_EMULATOR_HEADERS})
+FILE(GLOB_RECURSE SHAREMIND_EMULATOR_DOCS
+     "${CMAKE_CURRENT_SOURCE_DIR}/doc/*")
+ADD_CUSTOM_TARGET("include_Emulator_docs_in_IDE"
+                  SOURCES ${SHAREMIND_EMULATOR_DOCS})
 
 ADD_EXECUTABLE(Emulator ${SHAREMIND_EMULATOR_SOURCES})
 TARGET_LINK_LIBRARIES(Emulator
@@ -68,9 +72,10 @@ FUNCTION(GenerateManPage)
     SET(V "${SHAREMIND_EMULATOR_VERSION}")
     ADD_CUSTOM_COMMAND(TARGET Emulator POST_BUILD
             COMMAND ${HELP2MAN}
-                    -o "${CMAKE_CURRENT_BINARY_DIR}/Emulator.1"
-                    --no-discard-stderr
-                    --no-info
+                    "--include=${CMAKE_CURRENT_SOURCE_DIR}/doc/Emulator.h2m"
+                    "--output=${CMAKE_CURRENT_BINARY_DIR}/Emulator.1"
+                    "--no-discard-stderr"
+                    "--no-info"
                     "--name=manual page for Sharemind Emulator ${V}"
                     ${CMAKE_CURRENT_BINARY_DIR}/Emulator
             COMMENT "Generating manual page for Emulator")
