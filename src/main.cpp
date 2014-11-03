@@ -358,9 +358,12 @@ int main(int argc, char * argv[]) {
 
         static const constexpr auto noStdCin =
                 static_cast<decltype(&std::cin)>(nullptr);
-        MySourceStream myInput{cmdLine.preInput.data(),
-                               cmdLine.preInput.size(),
-                               cmdLine.argsFromStdin ? &std::cin : noStdCin};
+        {
+            MySourceStream myInput{cmdLine.preInput.data(),
+                                   cmdLine.preInput.size(),
+                                   cmdLine.argsFromStdin ? &std::cin : noStdCin};
+            ProcessArguments::instance.init(myInput);
+        }
 
         const Configuration conf(cmdLine.configurationFilename);
 
@@ -407,7 +410,6 @@ int main(int argc, char * argv[]) {
                 throw;
             }
 
-            ProcessArguments::instance.init(myInput);
             const int fd = [&cmdLine] {
                 if (!cmdLine.outFilename) {
                     assert(ProcessResults::outputStream == STDOUT_FILENO);
