@@ -16,6 +16,8 @@
 #include <iostream>
 #include <sharemind/EndianMacros.h>
 #include <sharemind/Exception.h>
+#include <system_error>
+#include <unistd.h>
 #include "Syscalls.h"
 
 namespace sharemind {
@@ -106,32 +108,37 @@ inline sharemind::IController::ValueMap readArguments(std::istream & is) {
     }
 }
 
-inline void writeSwapUint64(std::ostream & os, uint64_t v) {
-    v = hostToLittleEndian(v);
-    char d[sizeof(v)];
-    memcpy(d, &v, sizeof(v));
-    os.write(d, sizeof(v));
-}
-
-inline void writeData(std::ostream & os, const char * buf, size_t size) {
-    for (;;) {
-        const std::streamsize toWrite =
-                size > std::numeric_limits<std::streamsize>::max()
-                ? std::numeric_limits<std::streamsize>::max()
-                : size;
-        os.write(buf, toWrite);
-        if ((size -= toWrite) == 0u)
-            break;
-        buf += toWrite;
+inline void writeData(const int outFd, const char * buf, size_t size) {
+    if (size > 0u) {
+        const auto written = ::write(outFd, buf, size);
+        if (written > 0) {
+            const size_t uWritten = static_cast<size_t>(written);
+            assert(uWritten <= size);
+            size -= uWritten;
+            if (size == 0u)
+                return;
+            buf += uWritten;
+        } else {
+            assert(written == -1);
+            if ((errno != EAGAIN) && (errno != EINTR))
+                throw std::system_error(errno, std::system_category());
+        }
     };
 }
 
-inline void writeDataWithSize(std::ostream & os,
+inline void writeSwapUint64(const int outFd, uint64_t v) {
+    v = hostToLittleEndian(v);
+    char d[sizeof(v)];
+    memcpy(d, &v, sizeof(v));
+    writeData(outFd, d, sizeof(v));
+}
+
+inline void writeDataWithSize(const int outFd,
                               const char * data,
                               const size_t size)
 {
-    writeSwapUint64(os, size);
-    writeData(os, data, size);
+    writeSwapUint64(outFd, size);
+    writeData(outFd, data, size);
 }
 
 void ProcessArguments::init(std::istream & is)
@@ -139,7 +146,7 @@ void ProcessArguments::init(std::istream & is)
 
 ProcessArguments ProcessArguments::instance;
 
-std::ostream * ProcessResults::outputStream = &std::cout;
+int ProcessResults::outputStream = STDOUT_FILENO;
 
 extern "C" {
 
@@ -241,31 +248,19 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_setResult,
 
     assert(c);
     try {
-        const auto oldExcept = ProcessResults::outputStream->exceptions();
-        ProcessResults::outputStream->exceptions(std::ios::eofbit
-                                                 | std::ios::failbit
-                                                 | std::ios::badbit);
-        try {
-            writeDataWithSize(*ProcessResults::outputStream,
-                              static_cast<const char *>(crefs[0u].pData),
-                              crefs[0u].size - 1u);
-            writeDataWithSize(*ProcessResults::outputStream,
-                              static_cast<const char *>(crefs[1u].pData),
-                              crefs[1u].size - 1u);
-            writeDataWithSize(*ProcessResults::outputStream,
-                              static_cast<const char *>(crefs[2u].pData),
-                              crefs[2u].size - 1u);
-            writeDataWithSize(*ProcessResults::outputStream,
-                              static_cast<const char *>(crefs[3u].pData) + begin,
-                              end - begin);
-            return SHAREMIND_MODULE_API_0x1_OK;
-        } catch (const std::ios_base::failure &) {
-            ProcessResults::outputStream->exceptions(oldExcept);
-            return SHAREMIND_MODULE_API_0x1_GENERAL_ERROR;
-        } catch (...) {
-            ProcessResults::outputStream->exceptions(oldExcept);
-            throw;
-        }
+        writeDataWithSize(ProcessResults::outputStream,
+                          static_cast<const char *>(crefs[0u].pData),
+                          crefs[0u].size - 1u);
+        writeDataWithSize(ProcessResults::outputStream,
+                          static_cast<const char *>(crefs[1u].pData),
+                          crefs[1u].size - 1u);
+        writeDataWithSize(ProcessResults::outputStream,
+                          static_cast<const char *>(crefs[2u].pData),
+                          crefs[2u].size - 1u);
+        writeDataWithSize(ProcessResults::outputStream,
+                          static_cast<const char *>(crefs[3u].pData) + begin,
+                          end - begin);
+        return SHAREMIND_MODULE_API_0x1_OK;
     } catch (const std::bad_alloc &) {
         return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
     } catch (...) {

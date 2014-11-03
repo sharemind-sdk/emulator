@@ -18,7 +18,6 @@
 #include <iosfwd>
 #include <boost/iostreams/categories.hpp>
 #include <boost/iostreams/device/array.hpp>
-#include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <memory>
 #include <sharemind/Concat.h>
@@ -26,9 +25,11 @@
 #include <sharemind/Exception.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
 #include <sharemind/libvm/libvmcxx.h>
+#include <sharemind/ScopeExit.h>
 #include <sys/stat.h>
 #include <system_error>
 #include <type_traits>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 #include "Configuration.h"
@@ -407,10 +408,11 @@ int main(int argc, char * argv[]) {
             }
 
             ProcessArguments::instance.init(myInput);
-            using OutFileSink = boost::iostreams::file_descriptor_sink;
-            using OutFile = boost::iostreams::stream<OutFileSink>;
-            std::unique_ptr<OutFile> outFile;
-            if (cmdLine.outFilename) {
+            const int fd = [&cmdLine] {
+                if (!cmdLine.outFilename) {
+                    assert(ProcessResults::outputStream == STDOUT_FILENO);
+                    return -1;
+                }
                 const int openFlags = cmdLine.forceOutFile
                                     ? O_WRONLY | O_CREAT | O_TRUNC
                                     : O_WRONLY | O_CREAT | O_EXCL;
@@ -428,17 +430,10 @@ int main(int argc, char * argv[]) {
                                         cmdLine.outFilename));
                     }
                 }
-                try {
-                    outFile.reset(new OutFile(fd,
-                                              boost::iostreams::close_handle));
-                    ProcessResults::outputStream = outFile.get();
-                } catch (...) {
-                    ::close(fd);
-                    throw;
-                }
-            } else {
-                ProcessResults::outputStream = &std::cout;
-            }
+                ProcessResults::outputStream = fd;
+                return fd;
+            }();
+            SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));
 
             {
                 Process process{program};

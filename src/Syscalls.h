@@ -33,7 +33,7 @@ public: /* Methods: */
 
 struct ProcessResults {
 
-    static std::ostream * outputStream;
+    static int outputStream;
 
 };
 
