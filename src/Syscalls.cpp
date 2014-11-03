@@ -110,18 +110,20 @@ inline sharemind::IController::ValueMap readArguments(std::istream & is) {
 
 inline void writeData(const int outFd, const char * buf, size_t size) {
     if (size > 0u) {
-        const auto written = ::write(outFd, buf, size);
-        if (written > 0) {
-            const size_t uWritten = static_cast<size_t>(written);
-            assert(uWritten <= size);
-            size -= uWritten;
-            if (size == 0u)
-                return;
-            buf += uWritten;
-        } else {
-            assert(written == -1);
-            if ((errno != EAGAIN) && (errno != EINTR))
-                throw std::system_error(errno, std::system_category());
+        for (;;) {
+            const auto written = ::write(outFd, buf, size);
+            if (written > 0) {
+                const size_t uWritten = static_cast<size_t>(written);
+                assert(uWritten <= size);
+                size -= uWritten;
+                if (size == 0u)
+                    return;
+                buf += uWritten;
+            } else {
+                assert(written == -1);
+                if ((errno != EAGAIN) && (errno != EINTR))
+                    throw std::system_error(errno, std::system_category());
+            }
         }
     };
 }
