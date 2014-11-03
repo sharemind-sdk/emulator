@@ -375,90 +375,80 @@ int main(int argc, char * argv[]) {
             (new Module(modapi,
                         m.filename.c_str(),
                         m.configurationFile.c_str()))->init();
-        const auto destroyPds = []{
-            while (modapi.numPds() > 0u)
-                delete modapi.pd(0u);
-        };
-        try {
-            for (const auto & pd : conf.protectionDomainList()) {
-                Pdk * const pdk = modapi.findPdk(pd.kind.c_str());
-                if (!pdk)
-                    throw PdkNotFoundException{};
-                (new Pd(*pdk, pd.name.c_str(), pd.configurationFile.c_str()))
-                        ->start();
-            }
+        SHAREMIND_SCOPE_EXIT(while (modapi.numPds() > 0u) delete modapi.pd(0u));
+        for (const auto & pd : conf.protectionDomainList()) {
+            Pdk * const pdk = modapi.findPdk(pd.kind.c_str());
+            if (!pdk)
+                throw PdkNotFoundException{};
+            (new Pd(*pdk, pd.name.c_str(), pd.configurationFile.c_str()))
+                    ->start();
+        }
 
-            Vm vm{[](const char * name) -> SharemindSyscallWrapper {
-                      const auto it = staticSyscallWrappers.find(name);
-                      if (it != staticSyscallWrappers.end())
-                          return it->second;
-                      return modapi.syscallWrapper(name);
-                  },
-                  [](const char * name) -> SharemindPd * {
-                      Pd * const pd = modapi.findPd(name);
-                      return pd ? pd->cPtr() : nullptr;
-                  }};
-            Program program{vm};
-            try {
-                program.loadFromFile(cmdLine.bytecodeFilename);
-            } catch (const Program::Exception & e) {
-                const auto pos =
-                        static_cast<const char *>(program.lastParsePosition());
-                if (e.code() == SHAREMIND_VM_PREPARE_UNDEFINED_BIND) {
-                    std::cerr << "System call binding was: " << pos
-                              << std::endl;
-                } else if (e.code() == SHAREMIND_VM_PREPARE_UNDEFINED_PDBIND) {
-                    std::cerr << "Protection domain binding was: " << pos
-                              << std::endl;
+        Vm vm{[](const char * name) -> SharemindSyscallWrapper {
+                  const auto it = staticSyscallWrappers.find(name);
+                  if (it != staticSyscallWrappers.end())
+                      return it->second;
+                  return modapi.syscallWrapper(name);
+              },
+              [](const char * name) -> SharemindPd * {
+                  Pd * const pd = modapi.findPd(name);
+                  return pd ? pd->cPtr() : nullptr;
+              }};
+        Program program{vm};
+        try {
+            program.loadFromFile(cmdLine.bytecodeFilename);
+        } catch (const Program::Exception & e) {
+            const auto pos =
+                    static_cast<const char *>(program.lastParsePosition());
+            if (e.code() == SHAREMIND_VM_PREPARE_UNDEFINED_BIND) {
+                std::cerr << "System call binding was: " << pos << std::endl;
+            } else if (e.code() == SHAREMIND_VM_PREPARE_UNDEFINED_PDBIND) {
+                std::cerr << "Protection domain binding was: " << pos
+                          << std::endl;
+            }
+            throw;
+        }
+
+        const int fd = [&cmdLine] {
+            if (!cmdLine.outFilename) {
+                assert(ProcessResults::outputStream == STDOUT_FILENO);
+                return -1;
+            }
+            const int openFlags = cmdLine.forceOutFile
+                                ? O_WRONLY | O_CREAT | O_TRUNC
+                                : O_WRONLY | O_CREAT | O_EXCL;
+            const int fd = ::open(cmdLine.outFilename,
+                                  openFlags,
+                                  S_IRUSR | S_IWUSR | S_IRGRP);
+            if (fd == -1) {
+                try {
+                    throw std::system_error(errno, std::system_category());
+                } catch (...) {
+                    std::throw_with_nested(
+                                OutputFileOpenException(
+                                    "Unable to open given output file!",
+                                    "Unable to open given output file: ",
+                                    cmdLine.outFilename));
                 }
+            }
+            ProcessResults::outputStream = fd;
+            return fd;
+        }();
+        SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));
+
+        {
+            Process process{program};
+            try {
+                process.run();
+            } catch (...) {
+                std::cerr << "At section " << process.currentCodeSection()
+                          << ", block " << process.currentIp() << '.'
+                          << std::endl;
                 throw;
             }
 
-            const int fd = [&cmdLine] {
-                if (!cmdLine.outFilename) {
-                    assert(ProcessResults::outputStream == STDOUT_FILENO);
-                    return -1;
-                }
-                const int openFlags = cmdLine.forceOutFile
-                                    ? O_WRONLY | O_CREAT | O_TRUNC
-                                    : O_WRONLY | O_CREAT | O_EXCL;
-                const int fd = ::open(cmdLine.outFilename,
-                                      openFlags,
-                                      S_IRUSR | S_IWUSR | S_IRGRP);
-                if (fd == -1) {
-                    try {
-                        throw std::system_error(errno, std::system_category());
-                    } catch (...) {
-                        std::throw_with_nested(
-                                    OutputFileOpenException(
-                                        "Unable to open given output file!",
-                                        "Unable to open given output file: ",
-                                        cmdLine.outFilename));
-                    }
-                }
-                ProcessResults::outputStream = fd;
-                return fd;
-            }();
-            SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));
-
-            {
-                Process process{program};
-                try {
-                    process.run();
-                } catch (...) {
-                    std::cerr << "At section " << process.currentCodeSection()
-                              << ", block " << process.currentIp() << '.'
-                              << std::endl;
-                    throw;
-                }
-
-                std::cerr << "Process returned status: "
-                          << process.returnValue() << std::endl;
-            }
-            destroyPds();
-        } catch (...) {
-            destroyPds();
-            throw;
+            std::cerr << "Process returned status: " << process.returnValue()
+                      << std::endl;
         }
     } catch (const std::exception & e) {
         printException(e);
