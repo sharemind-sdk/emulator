@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <cstdlib>
 #include <exception>
 #include <fcntl.h>
 #include <fstream>
@@ -219,8 +220,11 @@ inline CommandLineArgs parseCommandLine(const int argc,
                                   str,
                                   str + size);
             } else if (strncmp(argv[i] + 1u, "-cfile=", 7u) == 0) {
-                std::ifstream f(argv[i] + 8u,
-                                std::ios::in | std::ios::binary);
+                char * const realPath = ::realpath(argv[i] + 8u, nullptr);
+                if (!realPath)
+                    throw std::system_error(errno, std::system_category());
+                SHAREMIND_SCOPE_EXIT(::free(realPath));
+                std::ifstream f(realPath, std::ios::in | std::ios::binary);
                 r.preInput.insert(r.preInput.end(),
                                   std::istreambuf_iterator<char>(f),
                                   std::istreambuf_iterator<char>());
