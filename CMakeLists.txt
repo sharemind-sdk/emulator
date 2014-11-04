@@ -43,6 +43,10 @@ ADD_DEFINITIONS(
     ${SharemindLibvmCxx_DEFINITIONS}
     "-DSHAREMIND_EMULATOR_VERSION=\"${SHAREMIND_EMULATOR_VERSION}\""
 )
+SET(Emulator_LIBRARIES
+    ${SharemindLibmodapiCxx_LIBRARIES}
+    ${SharemindLibvmCxx_LIBRARIES}
+)
 
 ################################################################################
 # Emulator
@@ -60,17 +64,35 @@ ADD_CUSTOM_TARGET("include_Emulator_docs_in_IDE"
                   SOURCES ${SHAREMIND_EMULATOR_DOCS})
 
 ADD_EXECUTABLE(Emulator ${SHAREMIND_EMULATOR_SOURCES})
-TARGET_LINK_LIBRARIES(Emulator
-    ${SharemindLibmodapiCxx_LIBRARIES}
-    ${SharemindLibvmCxx_LIBRARIES}
-)
+TARGET_LINK_LIBRARIES(Emulator ${Emulator_LIBRARIES})
 
 INSTALL(TARGETS Emulator RUNTIME DESTINATION "bin")
 
+FUNCTION(GetEmulatorLdLibraryPath out)
+    SET(L "")
+    FOREACH(l IN LISTS Emulator_LIBRARIES)
+        STRING(STRIP "${l}" l)
+        STRING(LENGTH "${l}" len)
+        IF(${len} GREATER 2)
+            STRING(SUBSTRING "${l}" 0 2 begin)
+            IF("GenerateManPage_${begin}" STREQUAL "GenerateManPage_-L")
+                STRING(SUBSTRING "${l}" 2 -1 l)
+                IF(L)
+                    SET(L "${L}:${l}")
+                ELSE()
+                    SET(L "${l}")
+                ENDIF()
+            ENDIF()
+        ENDIF()
+    ENDFOREACH()
+    SET("${out}" "${L}" PARENT_SCOPE)
+ENDFUNCTION()
+
 FUNCTION(GenerateManPage)
     SET(V "${SHAREMIND_EMULATOR_VERSION}")
+    GetEmulatorLdLibraryPath(L)
     ADD_CUSTOM_COMMAND(TARGET Emulator POST_BUILD
-            COMMAND ${HELP2MAN}
+            COMMAND env "LD_LIBRARY_PATH=${L}" ${HELP2MAN}
                     "--include=${CMAKE_CURRENT_SOURCE_DIR}/doc/Emulator.h2m"
                     "--output=${CMAKE_CURRENT_BINARY_DIR}/Emulator.1"
                     "--no-discard-stderr"
