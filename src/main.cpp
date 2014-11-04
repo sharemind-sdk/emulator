@@ -9,6 +9,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <cstdlib>
 #include <exception>
@@ -17,9 +19,7 @@
 #include <iterator>
 #include <iostream>
 #include <iosfwd>
-#include <boost/iostreams/categories.hpp>
-#include <boost/iostreams/device/array.hpp>
-#include <boost/iostreams/stream.hpp>
+#include <list>
 #include <memory>
 #include <sharemind/Concat.h>
 #include <sharemind/EndianMacros.h>
@@ -27,6 +27,7 @@
 #include <sharemind/libmodapi/libmodapicxx.h>
 #include <sharemind/libvm/libvmcxx.h>
 #include <sharemind/ScopeExit.h>
+#include <sstream>
 #include <sys/stat.h>
 #include <system_error>
 #include <type_traits>
@@ -37,23 +38,14 @@
 #include "Syscalls.h"
 
 
+/// \todo handle SIGXFSZ and SIGPIPE
+
 #ifndef SHAREMIND_EMULATOR_VERSION
 #error SHAREMIND_EMULATOR_VERSION not defined!
 #endif
 
 namespace sharemind {
 
-const char * programName = nullptr;
-
-struct CommandLineArgs {
-    bool justExit = false;
-    std::vector<char> preInput;
-    bool argsFromStdin = false;
-    const char * configurationFilename = nullptr;
-    const char * bytecodeFilename = nullptr;
-    const char * outFilename = nullptr;
-    bool forceOutFile = false;
-};
 
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, UsageException);
 SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
@@ -63,30 +55,264 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
                                      InputStringTooBigException,
                                      "Input string too big!");
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, OutputFileOpenException);
+SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileOpenException);
 struct GracefulException {};
 struct WriteIntegralArgumentException {};
 
-template <typename T>
-inline void writeIntegralArgument(std::vector<char> & v,
-                                  T value,
-                                  bool bigEndian = false) {
-    value = bigEndian ? hostToBigEndian(value) : hostToLittleEndian(value);
-    char data[sizeof(value)];
-    memcpy(data, &value, sizeof(value));
-    v.insert(v.end(), data, data + sizeof(value));
-}
+const char * programName = nullptr;
 
-template <typename T>
-inline void writeIntegralArgument(std::vector<char> & v,
-                                  const char * const input,
-                                  bool bigEndian = false)
-{
-    std::istringstream iss{std::string{input}};
-    T integer;
-    if ((iss >> integer).fail())
-        throw WriteIntegralArgumentException{};
-    writeIntegralArgument(v, integer, bigEndian);
-}
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
+                                     InputException,
+                                     "Invalid input to program!");
+
+struct InputData {
+    virtual ~InputData() noexcept {}
+    virtual size_t read(void * buf, size_t size) = 0;
+};
+
+class FileInputData final: public InputData {
+
+public: /* Methods: */
+
+    inline FileInputData(const int fd) : m_fd(fd) {}
+    inline FileInputData(const char * const filename) : m_fd(open(filename)) {}
+    inline ~FileInputData() noexcept final override { ::close(m_fd); }
+
+    inline size_t read(void * buf, size_t size) final override {
+        assert(size > 0u);
+        for (;;) {
+            const ssize_t r = ::read(m_fd, buf, size);
+            if (r >= 0)
+                return r;
+            assert(r == -1);
+            if ((errno != EAGAIN) && (errno != EINTR))
+                throw std::system_error(errno, std::system_category());
+        }
+    }
+
+    static int open(const char * filename) {
+        char * const realPath = ::realpath(filename, nullptr);
+        if (!realPath)
+            throw std::system_error(errno, std::system_category());
+        SHAREMIND_SCOPE_EXIT(::free(realPath));
+        const int fd = ::open(realPath, O_RDONLY);
+        if (fd != -1)
+            return fd;
+        try {
+            throw std::system_error(errno, std::system_category());
+        } catch (...) {
+            std::throw_with_nested(
+                        InputFileOpenException(
+                            "Unable to open given input file!",
+                            "Unable to open given input file: ",
+                            filename));
+        }
+    }
+
+private: /* Fields: */
+
+    int m_fd;
+
+};
+
+class BufferInputData final: public InputData {
+
+public: /* Methods: */
+
+    inline void write(const char c) { m_data.push_back(c); }
+
+    inline void write(const void * const data, const size_t size) {
+        const char * const d = static_cast<const char *>(data);
+        write(d, d + size);
+    }
+
+    template <typename Iter> inline void write(Iter first, Iter last)
+    { m_data.insert(m_data.end(), first, last); }
+
+    size_t read(void * buf, size_t size) final override {
+        assert(size > 0u);
+        const size_t dataLeft = m_data.size() - m_pos;
+        if (dataLeft == 0u)
+            return 0u;
+        const size_t toRead = std::min(size, dataLeft);
+        ::memcpy(buf, m_data.data() + m_pos, toRead);
+        m_pos += toRead;
+        return toRead;
+    }
+
+private: /* Fields: */
+
+    std::vector<char> m_data;
+    size_t m_pos = 0u;
+
+};
+
+class InputStream {
+
+private: /* Types: */
+
+    enum State { INIT, BUFFER, FILE, STDIN };
+
+public: /* Methods: */
+
+    inline ~InputStream() noexcept { for (auto const p : m_data) delete p; }
+
+    template <typename ... Args> inline void writeData(Args && ... args) {
+        BufferInputData & buffer =
+                (m_state == BUFFER)
+                ? *static_cast<BufferInputData *>(*m_data.rbegin())
+                : [this]() -> BufferInputData & {
+                    const auto bit = new BufferInputData();
+                    try {
+                        m_data.push_back(bit);
+                        m_state = BUFFER;
+                        return *bit;
+                    } catch (...) {
+                        delete bit;
+                        throw;
+                    }
+                }();
+        buffer.write(std::forward<Args>(args)...);
+    }
+
+    template <typename ... Args>
+    inline void writeFile(Args && ... args) {
+        const auto fit = new FileInputData(std::forward<Args>(args)...);
+        try {
+            m_data.push_back(fit);
+            m_state = FILE;
+        } catch (...) {
+            delete fit;
+            throw;
+        }
+    }
+
+    template <typename T>
+    inline void writeIntegral(T value, bool bigEndian = false) {
+        value = bigEndian ? hostToBigEndian(value) : hostToLittleEndian(value);
+        char data[sizeof(value)];
+        ::memcpy(data, &value, sizeof(value));
+        writeData(data, data + sizeof(value));
+    }
+
+    template <typename T>
+    inline void writeIntegral(const char * const input, bool bigEndian = false)
+    {
+        std::istringstream iss{std::string{input}};
+        T integer;
+        if ((iss >> integer).fail())
+            throw WriteIntegralArgumentException{};
+        writeIntegral(integer, bigEndian);
+    }
+
+    inline void readData(void * buf, size_t size) {
+        assert(buf);
+        assert(size > 0u);
+        while (!m_data.empty()) {
+            InputData * const i = m_data.front();
+            const size_t r = i->read(buf, size);
+            assert(r <= size);
+            if (r == size)
+                return;
+            m_data.pop_front();
+            delete i;
+            buf = static_cast<char *>(buf) + r;
+            size -= r;
+        }
+        throw InputException();
+    }
+
+    inline uint64_t readSwapUint64() {
+        char buf[sizeof(uint64_t)];
+        readData(buf, sizeof(uint64_t));
+        uint64_t out;
+        ::memcpy(&out, buf, sizeof(uint64_t));
+        return littleEndianToHost(out);
+    }
+
+    inline size_t readSize() {
+        static_assert(std::numeric_limits<uint64_t>::max()
+                      <= std::numeric_limits<size_t>::max(), "");
+        return readSwapUint64();
+    }
+
+    inline std::string readString() {
+        const size_t size = readSwapUint64();
+        if (size == 0u)
+            return {};
+        std::string str;
+        str.resize(size);
+        readData(&str[0u], size);
+        return str;
+    }
+
+    inline sharemind::IController::ValueMap readArguments() {
+        sharemind::IController::ValueMap args;
+        for (;;) {
+            std::string argName;
+            {
+                char buf[sizeof(uint64_t)];
+                // Peek:
+                try {
+                    readData(buf, 1u);
+                } catch (const InputException &) {
+                    break;
+                }
+                readData(&buf[1u], sizeof(uint64_t) - 1u);
+                uint64_t out;
+                ::memcpy(&out, buf, sizeof(uint64_t));
+                const size_t size = littleEndianToHost(out);
+                argName.resize(size);
+                readData(&argName[0u], size);
+            }
+            if (args.find(argName) != args.end())
+                throw InputException();
+            std::string pdName{readString()};
+            std::string typeName{readString()};
+            const size_t size = readSize();
+            void * data = ::operator new(size);
+            try {
+                readData(static_cast<char *>(data), size);
+                auto * const value = new sharemind::IController::Value{
+                        std::move(pdName),
+                        std::move(typeName),
+                        data,
+                        size,
+                        sharemind::IController::Value::TAKE_OWNERSHIP};
+                try {
+                    data = nullptr;
+                    #ifndef NDEBUG
+                    const auto r =
+                    #endif
+                            args.emplace(std::move(argName), value);
+                    assert(r.second);
+                } catch (...) {
+                    delete value;
+                    throw;
+                }
+            } catch (...) {
+                ::operator delete(data);
+                throw;
+            }
+        }
+        return args;
+    }
+
+private: /* Fields: */
+
+    State m_state = INIT;
+    std::list<InputData *> m_data;
+
+};
+
+struct CommandLineArgs {
+    bool justExit = false;
+    InputStream inputData;
+    const char * configurationFilename = nullptr;
+    const char * bytecodeFilename = nullptr;
+    const char * outFilename = nullptr;
+    bool forceOutFile = false;
+};
 
 inline void printUsage() {
     using namespace std;
@@ -146,7 +372,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
                         "Multiple --conf=FILENAME arguments given!"};
                 r.configurationFilename = argv[i] + 7u;
             } else if (strcmp(argv[i] + 1u, "-stdin") == 0) {
-                r.argsFromStdin = true;
+                r.inputData.writeFile(STDIN_FILENO);
             } else if ((strcmp(argv[i] + 1u, "-help") == 0)
                        || (strcmp(argv[i] + 1u, "-usage") == 0)) {
                 printUsage();
@@ -158,12 +384,10 @@ inline CommandLineArgs parseCommandLine(const int argc,
             } else if (strncmp(argv[i] + 1u, "-cstr=", 6u) == 0) {
                 const char * const str = argv[i] + 7u;
                 const auto size = strlen(str);
-                r.preInput.insert(r.preInput.end(),
-                                  str,
-                                  str + size);
+                r.inputData.writeData(str, str + size);
             } else if (strncmp(argv[i] + 1u, "-xstr=", 6u) == 0) {
                 for (const char * str = argv[i] + 7u; *str; str += 2u) {
-                    const auto getVal = [&](const char s) {
+                    const auto getVal = [=](const char s) {
                         switch (s) {
                         case 'a' ... 'f': return (s - 'a') + 0xa;
                         case 'A' ... 'F': return (s - 'A') + 0xA;
@@ -175,8 +399,8 @@ inline CommandLineArgs parseCommandLine(const int argc,
                                 argv[i]};
                         }
                     };
-                    r.preInput.push_back((getVal(*str) * 0xf)
-                                         + getVal(*(str + 1u)));
+                    r.inputData.writeData((getVal(*str) * 0xf)
+                                           + getVal(*(str + 1u)));
                 }
             }
             #define PROCESS_INTARG__(argname,type,big) \
@@ -185,8 +409,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
                                  1u + sizeof(argname)) == 0) \
                 { \
                     try { \
-                        writeIntegralArgument<type ## _t>( \
-                                r.preInput, \
+                        r.inputData.writeIntegral<type ## _t>( \
                                 argv[i] + 2u + sizeof(argname), \
                                 (big)); \
                     } catch (const WriteIntegralArgumentException &) { \
@@ -208,26 +431,22 @@ inline CommandLineArgs parseCommandLine(const int argc,
             PROCESS_INTARG(uint32)
             PROCESS_INTARG(uint64)
             else if (strncmp(argv[i] + 1u, "-size=", 6u) == 0) {
-                writeIntegralArgument<uint64_t>(r.preInput, argv[i] + 7u);
+                r.inputData.writeIntegral<uint64_t>(argv[i] + 7u);
             } else if (strncmp(argv[i] + 1u, "-str=", 5u) == 0) {
                 const char * const str = argv[i] + 6u;
                 const auto size = strlen(str);
                 if (size > std::numeric_limits<uint64_t>::max())
                     throw InputStringTooBigException{};
-                writeIntegralArgument(r.preInput,
-                                      static_cast<uint64_t>(size));
-                r.preInput.insert(r.preInput.end(),
-                                  str,
-                                  str + size);
+                r.inputData.writeIntegral(static_cast<uint64_t>(size));
+                r.inputData.writeData(str, str + size);
             } else if (strncmp(argv[i] + 1u, "-cfile=", 7u) == 0) {
                 char * const realPath = ::realpath(argv[i] + 8u, nullptr);
                 if (!realPath)
                     throw std::system_error(errno, std::system_category());
                 SHAREMIND_SCOPE_EXIT(::free(realPath));
                 std::ifstream f(realPath, std::ios::in | std::ios::binary);
-                r.preInput.insert(r.preInput.end(),
-                                  std::istreambuf_iterator<char>(f),
-                                  std::istreambuf_iterator<char>());
+                r.inputData.writeData(std::istreambuf_iterator<char>(f),
+                                      std::istreambuf_iterator<char>());
             } else if (strncmp(argv[i] + 1u, "-outFile=", 9u) == 0) {
                 if (r.outFilename)
                     throw UsageException{"Multiple --output=FILENAME "
@@ -274,100 +493,13 @@ inline void printException(const std::exception & e) noexcept {
 
 ModuleApi modapi;
 
-class MySource {
-
-public: /* Types: */
-
-    using char_type = typename std::istream::char_type;
-    using category = boost::iostreams::source_tag;
-
-public: /* Methods: */
-
-    inline MySource(const char_type * data,
-                    const size_t size,
-                    std::istream * inputStream)
-        : m_preInput(data)
-        , m_preInputLeft(size)
-        , m_inputStream(inputStream)
-    {}
-
-    std::streamsize read(char_type * dest, std::streamsize n) {
-        using uss = std::make_unsigned<decltype(n)>::type;
-        assert(n > 0);
-        std::streamsize r;
-        if (m_preInputLeft > 0u) {
-            if (m_preInputLeft >= static_cast<uss>(n)) {
-                std::copy(m_preInput, m_preInput + n, dest);
-                if (m_preInputLeft == static_cast<uss>(n)) {
-                    m_preInputLeft = 0u;
-                } else {
-                    m_preInput += n;
-                    m_preInputLeft -= n;
-                }
-                return n;
-            }
-
-            r = m_preInputLeft;
-            std::copy(m_preInput, m_preInput + r, dest);
-            m_preInputLeft = 0u;
-            if (!m_inputStream)
-                return r;
-            n -= r;
-            assert(n > 0);
-            dest += r;
-        } else {
-            if (!m_inputStream)
-                return -1;
-            r = 0;
-        }
-        try {
-            const auto oldExcept = m_inputStream->exceptions();
-            m_inputStream->exceptions(std::ios::eofbit
-                                      | std::ios::failbit
-                                      | std::ios::badbit);
-            try {
-                return r + m_inputStream->readsome(dest, n);
-            } catch (const std::ios_base::failure &) {
-                m_inputStream->exceptions(oldExcept);
-                if (m_inputStream->eof())
-                    return r ? r : -1;
-                throw;
-            } catch (...) {
-                m_inputStream->exceptions(oldExcept);
-                throw;
-            }
-        } catch (...) {
-            if (r)
-                return r;
-            throw;
-        }
-    }
-
-private: /* Fields: */
-
-    const char_type * m_preInput;
-    size_t m_preInputLeft;
-    std::istream * m_inputStream;
-
-};
-using MySourceStream = boost::iostreams::stream<MySource>;
-
-
 } // namespace sharemind {
 
 int main(int argc, char * argv[]) {
     using namespace sharemind;
     try {
-        const CommandLineArgs cmdLine{parseCommandLine(argc, argv)};
-
-        static const constexpr auto noStdCin =
-                static_cast<decltype(&std::cin)>(nullptr);
-        {
-            MySourceStream myInput{cmdLine.preInput.data(),
-                                   cmdLine.preInput.size(),
-                                   cmdLine.argsFromStdin ? &std::cin : noStdCin};
-            ProcessArguments::instance.init(myInput);
-        }
+        CommandLineArgs cmdLine{parseCommandLine(argc, argv)};
+        ProcessArguments::instance = cmdLine.inputData.readArguments();
 
         const Configuration conf(cmdLine.configurationFilename);
 

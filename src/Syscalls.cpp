@@ -7,106 +7,19 @@
  * code is subject to the appropriate license agreement.
  */
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
-#include <exception>
 #include <limits>
 #include <iostream>
 #include <sharemind/EndianMacros.h>
-#include <sharemind/Exception.h>
 #include <system_error>
 #include <unistd.h>
 #include "Syscalls.h"
 
+
 namespace sharemind {
-
-SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
-                                     InputException,
-                                     "Invalid input to program!");
-
-inline uint64_t readSwapUint64(std::istream & is) {
-    char buf[sizeof(uint64_t)];
-    if (is.readsome(buf, sizeof(uint64_t)) != sizeof(uint64_t))
-        throw InputException();
-    uint64_t out;
-    memcpy(&out, buf, sizeof(uint64_t));
-    return littleEndianToHost(out);
-}
-
-inline void readData(std::istream & is, char * buf, size_t size) {
-    for (;;) {
-        const std::streamsize toRead =
-                size > std::numeric_limits<std::streamsize>::max()
-                ? std::numeric_limits<std::streamsize>::max()
-                : size;
-        const auto read = is.readsome(buf, toRead);
-        if (read != toRead)
-            throw InputException();
-        if ((size -= read) == 0u)
-            break;
-        buf += read;
-    };
-}
-
-inline std::string readString(std::istream & is) {
-    static_assert(std::numeric_limits<uint64_t>::max()
-                  <= std::numeric_limits<size_t>::max(), "");
-    size_t size = readSwapUint64(is);
-    if (size == 0u)
-        return {};
-    std::string str;
-    str.resize(size);
-    readData(is, &str[0u], size);
-    return str;
-}
-
-inline sharemind::IController::ValueMap readArguments(std::istream & is) {
-    sharemind::IController::ValueMap args;
-    const auto oldExcept = is.exceptions();
-    is.exceptions(std::ios::goodbit);
-    try {
-        for (;;) {
-            const auto c = is.peek();
-            if (c == std::char_traits<std::istream::char_type>::eof())
-                break;
-            is.exceptions(std::ios::eofbit
-                          | std::ios::failbit
-                          | std::ios::badbit);
-            std::string argName{readString(is)};
-            if (args.find(argName) != args.end())
-                throw InputException();
-            std::string pdName{readString(is)};
-            std::string typeName{readString(is)};
-            static_assert(std::numeric_limits<uint64_t>::max()
-                          <= std::numeric_limits<size_t>::max(), "");
-            const size_t size = readSwapUint64(is);
-            void * const data = ::operator new(size);
-            readData(is, static_cast<char *>(data), size);
-            #ifndef NDEBUG
-            const auto r =
-            #endif
-                    args.emplace(
-                            std::move(argName),
-                            new sharemind::IController::Value{
-                                std::move(pdName),
-                                std::move(typeName),
-                                data,
-                                size,
-                                sharemind::IController::Value::TAKE_OWNERSHIP});
-            assert(r.second);
-            is.exceptions(std::ios::goodbit);
-        }
-        is.exceptions(oldExcept);
-        return args;
-    } catch (...) {
-        is.exceptions(oldExcept);
-        if (is.fail())
-            throw;
-        throw InputException();
-    }
-}
 
 inline void writeData(const int outFd, const char * buf, size_t size) {
     if (size > 0u) {
@@ -142,9 +55,6 @@ inline void writeDataWithSize(const int outFd,
     writeSwapUint64(outFd, size);
     writeData(outFd, data, size);
 }
-
-void ProcessArguments::init(std::istream & is)
-{ static_cast<IController::ValueMap &>(*this) = readArguments(is); }
 
 ProcessArguments ProcessArguments::instance;
 

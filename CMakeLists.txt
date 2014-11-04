@@ -23,7 +23,7 @@ ADD_COMPILE_OPTIONS(
 )
 
 FIND_PROGRAM(HELP2MAN help2man)
-FIND_PACKAGE(Boost 1.56 REQUIRED COMPONENTS iostreams)
+FIND_PACKAGE(Boost 1.56 REQUIRED)
 FIND_PACKAGE(SharemindCxxHeaders REQUIRED)
 FIND_PACKAGE(SharemindLibController REQUIRED)
 FIND_PACKAGE(SharemindLibmodapiCxx 0.2.0 REQUIRED)
@@ -61,7 +61,6 @@ ADD_CUSTOM_TARGET("include_Emulator_docs_in_IDE"
 
 ADD_EXECUTABLE(Emulator ${SHAREMIND_EMULATOR_SOURCES})
 TARGET_LINK_LIBRARIES(Emulator
-    ${Boost_LIBRARIES}
     ${SharemindLibmodapiCxx_LIBRARIES}
     ${SharemindLibvmCxx_LIBRARIES}
 )

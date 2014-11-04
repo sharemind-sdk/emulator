@@ -25,7 +25,9 @@ class ProcessArguments: public IController::ValueMap {
 
 public: /* Methods: */
 
-    void init(std::istream & is);
+    using IController::ValueMap::operator=;
+
+public: /* Fields: */
 
     static ProcessArguments instance;
 
