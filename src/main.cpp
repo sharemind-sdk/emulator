@@ -45,6 +45,7 @@
 
 namespace sharemind {
 
+char buf8k[8192u];
 
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, UsageException);
 SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
@@ -54,6 +55,7 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
                                      InputStringTooBigException,
                                      "Input string too big!");
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, OutputFileOpenException);
+SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, OutputFileException);
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileOpenException);
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileException);
 struct GracefulException {};
@@ -77,6 +79,67 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
 struct InputData {
     virtual ~InputData() noexcept {}
     virtual size_t read(void * buf, size_t size) = 0;
+    virtual void writeToFileDescriptor(const int fd,
+                                       const char * const filename) = 0;
+};
+
+class BufferInputData final: public InputData {
+
+public: /* Methods: */
+
+    inline void write(const char c) { m_data.push_back(c); }
+
+    inline void write(const void * const data, const size_t size) {
+        const char * const d = static_cast<const char *>(data);
+        write(d, d + size);
+    }
+
+    template <typename Iter> inline void write(Iter first, Iter last)
+    { m_data.insert(m_data.end(), first, last); }
+
+    size_t read(void * buf, size_t size) final override {
+        assert(size > 0u);
+        const size_t dataLeft = m_data.size() - m_pos;
+        if (dataLeft == 0u)
+            return 0u;
+        const size_t toRead = std::min(size, dataLeft);
+        ::memcpy(buf, m_data.data() + m_pos, toRead);
+        m_pos += toRead;
+        return toRead;
+    }
+
+    void writeToFileDescriptor(const int fd,
+                               const char * const filename) final override
+    { writeToFileDescriptor(fd, filename, m_data.data(), m_data.size()); }
+
+    static void writeToFileDescriptor(const int fd,
+                                      const char * const filename,
+                                      const char * buf,
+                                      size_t size)
+    {
+        do {
+            const auto r = ::write(fd, buf, size);
+            if (r > 0) {
+                assert(static_cast<size_t>(r) <= size);
+                size -= static_cast<size_t>(r);
+                if (size == 0u)
+                    return;
+                buf += r;
+            } else {
+                assert(r == -1);
+                if ((errno != EAGAIN) && (errno != EINTR))
+                    NESTED_SYSTEM_ERROR(OutputFileException,
+                                        "write() failed to output file",
+                                        filename);
+            }
+        } while (size > 0u);
+    }
+
+private: /* Fields: */
+
+    std::vector<char> m_data;
+    size_t m_pos = 0u;
+
 };
 
 class FileInputData final: public InputData {
@@ -109,6 +172,28 @@ public: /* Methods: */
         }
     }
 
+    void writeToFileDescriptor(const int fd,
+                               const char * const filename) final override
+    {
+        for (;;) {
+            const auto rr = ::read(m_fd, buf8k, 8192u);
+            if (rr == 0u) {
+                return;
+            } else if (rr > 0u) {
+                BufferInputData::writeToFileDescriptor(fd,
+                                                       filename,
+                                                       buf8k,
+                                                       static_cast<size_t>(rr));
+            } else {
+                assert(rr == -1);
+                if ((errno != EAGAIN) && (errno != EINTR))
+                    NESTED_SYSTEM_ERROR(InputFileException,
+                                        "Unable to read() given input file",
+                                        m_filename);
+            }
+        }
+    }
+
     static int open(const char * filename) {
         char * const realPath = ::realpath(filename, nullptr);
         if (!realPath)
@@ -128,38 +213,6 @@ private: /* Fields: */
 
     int m_fd;
     const char * const m_filename;
-
-};
-
-class BufferInputData final: public InputData {
-
-public: /* Methods: */
-
-    inline void write(const char c) { m_data.push_back(c); }
-
-    inline void write(const void * const data, const size_t size) {
-        const char * const d = static_cast<const char *>(data);
-        write(d, d + size);
-    }
-
-    template <typename Iter> inline void write(Iter first, Iter last)
-    { m_data.insert(m_data.end(), first, last); }
-
-    size_t read(void * buf, size_t size) final override {
-        assert(size > 0u);
-        const size_t dataLeft = m_data.size() - m_pos;
-        if (dataLeft == 0u)
-            return 0u;
-        const size_t toRead = std::min(size, dataLeft);
-        ::memcpy(buf, m_data.data() + m_pos, toRead);
-        m_pos += toRead;
-        return toRead;
-    }
-
-private: /* Fields: */
-
-    std::vector<char> m_data;
-    size_t m_pos = 0u;
 
 };
 
@@ -314,12 +367,33 @@ public: /* Methods: */
         return args;
     }
 
+    void writeToFileDescriptor(const int fd,
+                               const char * const filename)
+    {
+        for (auto const p : m_data)
+            p->writeToFileDescriptor(fd, filename);
+    }
+
 private: /* Fields: */
 
     State m_state = INIT;
     std::list<InputData *> m_data;
 
 };
+
+int openOutFile(const char * const filename, bool force) {
+    const int openFlags = force
+                        ? O_WRONLY | O_CREAT | O_TRUNC
+                        : O_WRONLY | O_CREAT | O_EXCL;
+    const int fd = ::open(filename,
+                          openFlags,
+                          S_IRUSR | S_IWUSR | S_IRGRP);
+    if (fd == -1)
+        NESTED_SYSTEM_ERROR(OutputFileOpenException,
+                            "Unable to open() given output file",
+                            filename);
+    return fd;
+}
 
 struct CommandLineArgs {
     bool justExit = false;
@@ -372,7 +446,10 @@ inline void printUsage() {
          << "  --outFile=FILENAME  Writes the output to the given file instead "
             "of the standard output." << endl << endl
          << "  --forceOutFile      Overwrites the file given by "
-            "--outFile=FILENAME if the file already exists." << endl << endl;
+            "--outFile=FILENAME if the file already exists." << endl << endl
+         << "  --argsOut           Stops processing any further arguments, "
+            "outputs the argument stream and exits successfully."
+         << endl << endl;
 }
 
 inline CommandLineArgs parseCommandLine(const int argc,
@@ -487,6 +564,10 @@ inline CommandLineArgs parseCommandLine(const int argc,
                     throw UsageException{"Multiple --output=FILENAME "
                                          "arguments given!"};
                 r.outFilename = argv[i] + 10u;
+            } else if (strcmp(argv[i] + 1u, "-argsOut") == 0) {
+                const int fd = openOutFile(r.outFilename, r.forceOutFile);
+                r.inputData.writeToFileDescriptor(fd, r.outFilename);
+                throw GracefulException{};
             } else if (strcmp(argv[i] + 1u, "-forceOutFile") == 0) {
                 r.forceOutFile = true;
             } else {
@@ -581,16 +662,8 @@ int main(int argc, char * argv[]) {
                 assert(processResultsStream == STDOUT_FILENO);
                 return -1;
             }
-            const int openFlags = cmdLine.forceOutFile
-                                ? O_WRONLY | O_CREAT | O_TRUNC
-                                : O_WRONLY | O_CREAT | O_EXCL;
-            const int fd = ::open(cmdLine.outFilename,
-                                  openFlags,
-                                  S_IRUSR | S_IWUSR | S_IRGRP);
-            if (fd == -1)
-                NESTED_SYSTEM_ERROR(OutputFileOpenException,
-                                    "Unable to open() given output file",
-                                    cmdLine.outFilename);
+            const int fd = openOutFile(cmdLine.outFilename,
+                                       cmdLine.forceOutFile);
             processResultsStream = fd;
             return fd;
         }();
