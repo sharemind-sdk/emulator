@@ -307,6 +307,7 @@ private: /* Fields: */
 struct CommandLineArgs {
     bool justExit = false;
     InputStream inputData;
+    bool haveStdin = false;
     const char * configurationFilename = nullptr;
     const char * bytecodeFilename = nullptr;
     const char * outFilename = nullptr;
@@ -373,7 +374,10 @@ inline CommandLineArgs parseCommandLine(const int argc,
                         "Multiple --conf=FILENAME arguments given!"};
                 r.configurationFilename = argv[i] + 7u;
             } else if (strcmp(argv[i] + 1u, "-stdin") == 0) {
+                if (r.haveStdin)
+                    throw UsageException{"Multiple --stdin arguments given!"};
                 r.inputData.writeFile(STDIN_FILENO);
+                r.haveStdin = true;
             } else if ((strcmp(argv[i] + 1u, "-help") == 0)
                        || (strcmp(argv[i] + 1u, "-usage") == 0)) {
                 printUsage();
