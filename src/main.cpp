@@ -15,7 +15,6 @@
 #include <cstdlib>
 #include <exception>
 #include <fcntl.h>
-#include <fstream>
 #include <iterator>
 #include <iostream>
 #include <iosfwd>
@@ -440,13 +439,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
                 r.inputData.writeIntegral(static_cast<uint64_t>(size));
                 r.inputData.writeData(str, str + size);
             } else if (strncmp(argv[i] + 1u, "-cfile=", 7u) == 0) {
-                char * const realPath = ::realpath(argv[i] + 8u, nullptr);
-                if (!realPath)
-                    throw std::system_error(errno, std::system_category());
-                SHAREMIND_SCOPE_EXIT(::free(realPath));
-                std::ifstream f(realPath, std::ios::in | std::ios::binary);
-                r.inputData.writeData(std::istreambuf_iterator<char>(f),
-                                      std::istreambuf_iterator<char>());
+                r.inputData.writeFile(argv[i] + 8u);
             } else if (strncmp(argv[i] + 1u, "-outFile=", 9u) == 0) {
                 if (r.outFilename)
                     throw UsageException{"Multiple --output=FILENAME "
