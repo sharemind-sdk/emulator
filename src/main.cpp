@@ -349,6 +349,8 @@ inline void printUsage() {
             "where VALUE is the length of the given STRING." << endl << endl
          << "  --cfile=FILENAME     Writes the given binary file to the "
             "argument stream." << endl << endl
+         << "  --file=FILENAME     Identical to --size=VALUE --cfile=FILENAME, "
+            "where VALUE is the size of the given file." << endl << endl
          << "  --outFile=FILENAME  Writes the output to the given file instead "
             "of the standard output." << endl << endl
          << "  --forceOutFile      Overwrites the file given by "
@@ -440,6 +442,30 @@ inline CommandLineArgs parseCommandLine(const int argc,
                 r.inputData.writeData(str, str + size);
             } else if (strncmp(argv[i] + 1u, "-cfile=", 7u) == 0) {
                 r.inputData.writeFile(argv[i] + 8u);
+            } else if (strncmp(argv[i] + 1u, "-file=", 6u) == 0) {
+                const char * const fileName = argv[i] + 7u;
+                const int fd = FileInputData::open(fileName);
+                struct ::stat st;
+                const auto ret = fstat(fd, &st);
+                if (ret != 0) {
+                    assert(ret == -1);
+                    try {
+                        throw std::system_error(errno, std::system_category());
+                    } catch (...) {
+                        std::throw_with_nested(
+                                    InputFileOpenException(
+                                        "Unable to fstat() given input file!",
+                                        "Unable to fstat() given input file: ",
+                                        fileName));
+                    }
+                }
+                static_assert(std::numeric_limits<decltype(st.st_size)>::max()
+                              <= std::numeric_limits<uint64_t>::max(),
+                              "");
+                const uint64_t size =
+                        hostToLittleEndian(static_cast<uint64_t>(st.st_size));
+                r.inputData.writeData(&size, sizeof(size));
+                r.inputData.writeFile(fd);
             } else if (strncmp(argv[i] + 1u, "-outFile=", 9u) == 0) {
                 if (r.outFilename)
                     throw UsageException{"Multiple --output=FILENAME "
