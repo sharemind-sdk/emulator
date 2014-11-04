@@ -348,7 +348,7 @@ inline void printUsage() {
          << "  --size=VALUE        Identical to --uint64=VALUE." << endl << endl
          << "  --str=STRING        Identical to --size=VALUE --cstr=STRING, "
             "where VALUE is the length of the given STRING." << endl << endl
-         << "  --cfile=FILENAME     Writes the given binary file to the "
+         << "  --cfile=FILENAME    Writes the given binary file to the "
             "argument stream." << endl << endl
          << "  --file=FILENAME     Identical to --size=VALUE --cfile=FILENAME, "
             "where VALUE is the size of the given file." << endl << endl
