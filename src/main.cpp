@@ -439,7 +439,8 @@ inline CommandLineArgs parseCommandLine(const int argc,
                 if (size > std::numeric_limits<uint64_t>::max())
                     throw InputStringTooBigException{};
                 r.inputData.writeIntegral(static_cast<uint64_t>(size));
-                r.inputData.writeData(str, str + size);
+                if (size > 0u)
+                    r.inputData.writeData(str, str + size);
             } else if (strncmp(argv[i] + 1u, "-cfile=", 7u) == 0) {
                 r.inputData.writeFile(argv[i] + 8u);
             } else if (strncmp(argv[i] + 1u, "-file=", 6u) == 0) {
