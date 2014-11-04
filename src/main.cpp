@@ -329,8 +329,8 @@ inline void printUsage() {
          << endl << endl
          << "  --version           Output version information and exit."
          << endl << endl
-         << "  --stdin             Continue reading the argument stream from "
-            "stdin." << endl << endl
+         << "  --stdin             Writes the contents from the standard input "
+            "to the argument stream. Can be given only once." << endl << endl
          << "  --cstr=STRING       Writes the literal STRING to the argument "
             "stream." << endl << endl
          << "  --xstr=HEXBYTES     Writes the given hexadecimal bytes to the "

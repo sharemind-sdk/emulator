@@ -4,7 +4,8 @@ The arguments to the bytecode process are passed through an argument stream,
 which is constructed using command line options and/or read from standard input
 (when using the --stdin flag). The results published by the bytecode process are
 written to standard output, unless an --outFile= option is given to write the
-results to the given file.
+results to the given file. Both the input argument stream and the output result
+stream follow the syntax of the ARGUMENT STREAM PROTOCOL detailed below.
 
 [Example]
 
@@ -14,11 +15,16 @@ use:
     Emulator --conf=/path/to/emulator.conf /path/to/bytecode \\
              --outFile=/dev/null --forceOutFile
 
-To pass the first argument named "arg1" of protection domain "pd_a3p" and type
-"uint64" with a value of 42 to the emulator, one may use
+To pass an argument named "arg1" of protection domain "pd_a3p" and type "uint64"
+with a value of 42 to the emulator, one may use
 
     Emulator --conf=/path/to/emulator.conf /path/to/bytecode \\
              --str=arg1 --str=pd_a3p --str=uint64 --size=8 --uint64=42
+
+To pass the contents of a file as a public string argument, one may use:
+
+    Emulator --conf=/path/to/emulator.conf /path/to/bytecode \\
+             --str=arg1 --str= --str=string --file=/path/to/file
 
 [Argument stream protocol]
 The argument stream is a unidirectional binary stream for the delivery of
@@ -37,4 +43,4 @@ The simple protocol can be described in pseudo-C packed structures as follows:
     char     argumentData[argumentDataSize];
   } arguments[num_arguments];
 
-Little-endian (network order) is assumed for multi-byte integral values.
+Little-endian (network order) is assumed for the uint64_t size values.
