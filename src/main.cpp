@@ -416,10 +416,10 @@ inline void printUsage() {
          << "  --conf=FILENAME     Reads the configuration file from the given "
             "location." << endl << endl
          << "Optional arguments:" << endl << endl
-         << "  --help, --usage     Display this help and exit."
+         << "  --help, --usage     Displays this help and exits successfully."
          << endl << endl
-         << "  --version           Output version information and exit."
-         << endl << endl
+         << "  --version           Outputs version information and exits "
+            "successfully." << endl << endl
          << "  --stdin             Writes the contents from the standard input "
             "to the argument stream. Can be given only once." << endl << endl
          << "  --cstr=STRING       Writes the literal STRING to the argument "
