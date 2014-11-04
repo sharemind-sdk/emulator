@@ -102,8 +102,8 @@ public: /* Methods: */
         } catch (...) {
             std::throw_with_nested(
                         InputFileOpenException(
-                            "Unable to open given input file!",
-                            "Unable to open given input file: ",
+                            "Unable to open() given input file!",
+                            "Unable to open() given input file: ",
                             filename));
         }
     }
@@ -577,8 +577,8 @@ int main(int argc, char * argv[]) {
                 } catch (...) {
                     std::throw_with_nested(
                                 OutputFileOpenException(
-                                    "Unable to open given output file!",
-                                    "Unable to open given output file: ",
+                                    "Unable to open() given output file!",
+                                    "Unable to open() given output file: ",
                                     cmdLine.outFilename));
                 }
             }
