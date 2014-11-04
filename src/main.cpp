@@ -518,7 +518,7 @@ int main(int argc, char * argv[]) {
     using namespace sharemind;
     try {
         CommandLineArgs cmdLine{parseCommandLine(argc, argv)};
-        ProcessArguments::instance = cmdLine.inputData.readArguments();
+        processArguments = cmdLine.inputData.readArguments();
 
         const Configuration conf(cmdLine.configurationFilename);
 
@@ -562,7 +562,7 @@ int main(int argc, char * argv[]) {
 
         const int fd = [&cmdLine] {
             if (!cmdLine.outFilename) {
-                assert(ProcessResults::outputStream == STDOUT_FILENO);
+                assert(processResultsStream == STDOUT_FILENO);
                 return -1;
             }
             const int openFlags = cmdLine.forceOutFile
@@ -582,7 +582,7 @@ int main(int argc, char * argv[]) {
                                     cmdLine.outFilename));
                 }
             }
-            ProcessResults::outputStream = fd;
+            processResultsStream = fd;
             return fd;
         }();
         SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));

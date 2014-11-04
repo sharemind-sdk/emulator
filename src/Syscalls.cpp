@@ -56,9 +56,8 @@ inline void writeDataWithSize(const int outFd,
     writeData(outFd, data, size);
 }
 
-ProcessArguments ProcessArguments::instance;
-
-int ProcessResults::outputStream = STDOUT_FILENO;
+IController::ValueMap processArguments;
+int processResultsStream = STDOUT_FILENO;
 
 extern "C" {
 
@@ -101,7 +100,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_argument,
     try {
         const std::string argumentName(static_cast<const char *>(crs[0u].pData),
                                        crs[0u].size - 1u);
-        const auto a = ProcessArguments::instance.maybeAt(argumentName);
+        const auto a = processArguments.maybeAt(argumentName);
         if (!a)
             return SHAREMIND_MODULE_API_0x1_GENERAL_ERROR;
 
@@ -160,16 +159,16 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_setResult,
 
     assert(c);
     try {
-        writeDataWithSize(ProcessResults::outputStream,
+        writeDataWithSize(processResultsStream,
                           static_cast<const char *>(crefs[0u].pData),
                           crefs[0u].size - 1u);
-        writeDataWithSize(ProcessResults::outputStream,
+        writeDataWithSize(processResultsStream,
                           static_cast<const char *>(crefs[1u].pData),
                           crefs[1u].size - 1u);
-        writeDataWithSize(ProcessResults::outputStream,
+        writeDataWithSize(processResultsStream,
                           static_cast<const char *>(crefs[2u].pData),
                           crefs[2u].size - 1u);
-        writeDataWithSize(ProcessResults::outputStream,
+        writeDataWithSize(processResultsStream,
                           static_cast<const char *>(crefs[3u].pData) + begin,
                           end - begin);
         return SHAREMIND_MODULE_API_0x1_OK;

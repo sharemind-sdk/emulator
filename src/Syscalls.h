@@ -20,24 +20,8 @@ namespace sharemind {
 
 extern const std::map<std::string, const SharemindSyscallWrapper>
        staticSyscallWrappers;
-
-class ProcessArguments: public IController::ValueMap {
-
-public: /* Methods: */
-
-    using IController::ValueMap::operator=;
-
-public: /* Fields: */
-
-    static ProcessArguments instance;
-
-};
-
-struct ProcessResults {
-
-    static int outputStream;
-
-};
+extern IController::ValueMap processArguments;
+extern int processResultsStream;
 
 } /* namespace sharemind { */
 
