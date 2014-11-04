@@ -55,8 +55,18 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
                                      "Input string too big!");
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, OutputFileOpenException);
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileOpenException);
+SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileException);
 struct GracefulException {};
 struct WriteIntegralArgumentException {};
+
+#define NESTED_SYSTEM_ERROR(Exception,str,...) \
+    do { \
+        try { \
+            throw std::system_error(errno, std::system_category()); \
+        } catch (...) { \
+            std::throw_with_nested(Exception(str "!", str ": ", __VA_ARGS__)); \
+        } \
+    } while(false)
 
 const char * programName = nullptr;
 
@@ -73,8 +83,16 @@ class FileInputData final: public InputData {
 
 public: /* Methods: */
 
-    inline FileInputData(const int fd) : m_fd(fd) {}
-    inline FileInputData(const char * const filename) : m_fd(open(filename)) {}
+    inline FileInputData(const int fd, const char * const filename)
+        : m_fd(fd)
+        , m_filename(filename)
+    {}
+
+    inline FileInputData(const char * const filename)
+        : m_fd(open(filename))
+        , m_filename(filename)
+    {}
+
     inline ~FileInputData() noexcept final override { ::close(m_fd); }
 
     inline size_t read(void * buf, size_t size) final override {
@@ -85,32 +103,31 @@ public: /* Methods: */
                 return r;
             assert(r == -1);
             if ((errno != EAGAIN) && (errno != EINTR))
-                throw std::system_error(errno, std::system_category());
+                NESTED_SYSTEM_ERROR(InputFileException,
+                                    "Unable to read() from input file",
+                                    m_filename);
         }
     }
 
     static int open(const char * filename) {
         char * const realPath = ::realpath(filename, nullptr);
         if (!realPath)
-            throw std::system_error(errno, std::system_category());
+            NESTED_SYSTEM_ERROR(InputFileOpenException,
+                                "realpath() failed",
+                                filename);
         SHAREMIND_SCOPE_EXIT(::free(realPath));
         const int fd = ::open(realPath, O_RDONLY);
         if (fd != -1)
             return fd;
-        try {
-            throw std::system_error(errno, std::system_category());
-        } catch (...) {
-            std::throw_with_nested(
-                        InputFileOpenException(
-                            "Unable to open() given input file!",
-                            "Unable to open() given input file: ",
-                            filename));
-        }
+        NESTED_SYSTEM_ERROR(InputFileOpenException,
+                            "Unable to open() given input file",
+                            filename);
     }
 
 private: /* Fields: */
 
     int m_fd;
+    const char * const m_filename;
 
 };
 
@@ -376,7 +393,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
             } else if (strcmp(argv[i] + 1u, "-stdin") == 0) {
                 if (r.haveStdin)
                     throw UsageException{"Multiple --stdin arguments given!"};
-                r.inputData.writeFile(STDIN_FILENO);
+                r.inputData.writeFile(STDIN_FILENO, "<STDIN>");
                 r.haveStdin = true;
             } else if ((strcmp(argv[i] + 1u, "-help") == 0)
                        || (strcmp(argv[i] + 1u, "-usage") == 0)) {
@@ -454,15 +471,9 @@ inline CommandLineArgs parseCommandLine(const int argc,
                 const auto ret = fstat(fd, &st);
                 if (ret != 0) {
                     assert(ret == -1);
-                    try {
-                        throw std::system_error(errno, std::system_category());
-                    } catch (...) {
-                        std::throw_with_nested(
-                                    InputFileOpenException(
-                                        "Unable to fstat() given input file!",
-                                        "Unable to fstat() given input file: ",
-                                        fileName));
-                    }
+                    NESTED_SYSTEM_ERROR(InputFileOpenException,
+                                        "Unable to fstat() given input file",
+                                        fileName);
                 }
                 static_assert(std::numeric_limits<decltype(st.st_size)>::max()
                               <= std::numeric_limits<uint64_t>::max(),
@@ -470,7 +481,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
                 const uint64_t size =
                         hostToLittleEndian(static_cast<uint64_t>(st.st_size));
                 r.inputData.writeData(&size, sizeof(size));
-                r.inputData.writeFile(fd);
+                r.inputData.writeFile(fd, fileName);
             } else if (strncmp(argv[i] + 1u, "-outFile=", 9u) == 0) {
                 if (r.outFilename)
                     throw UsageException{"Multiple --output=FILENAME "
@@ -576,17 +587,10 @@ int main(int argc, char * argv[]) {
             const int fd = ::open(cmdLine.outFilename,
                                   openFlags,
                                   S_IRUSR | S_IWUSR | S_IRGRP);
-            if (fd == -1) {
-                try {
-                    throw std::system_error(errno, std::system_category());
-                } catch (...) {
-                    std::throw_with_nested(
-                                OutputFileOpenException(
-                                    "Unable to open() given output file!",
-                                    "Unable to open() given output file: ",
-                                    cmdLine.outFilename));
-                }
-            }
+            if (fd == -1)
+                NESTED_SYSTEM_ERROR(OutputFileOpenException,
+                                    "Unable to open() given output file",
+                                    cmdLine.outFilename);
             processResultsStream = fd;
             return fd;
         }();
