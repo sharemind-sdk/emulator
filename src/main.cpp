@@ -383,8 +383,12 @@ public: /* Methods: */
     void writeToFileDescriptor(const int fd,
                                const char * const filename)
     {
-        for (auto const p : m_data)
-            p->writeToFileDescriptor(fd, filename);
+        while (!m_data.empty()) {
+            InputData * const i = m_data.front();
+            i->writeToFileDescriptor(fd, filename);
+            m_data.pop_front();
+            delete i;
+        }
     }
 
 private: /* Fields: */
