@@ -489,7 +489,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
             if (r.bytecodeFilename)
                 throw UsageException{"Multiple bytecode FILENAME arguments "
                                      "given!"};
-            r.bytecodeFilename = argv[i];
+            r.bytecodeFilename = opt;
             continue;
         }
 
@@ -670,7 +670,7 @@ parseCommandLine_str:
 
 parseCommandLine_cfile:
 
-        inputData.writeFile(argv[i] + 8u);
+        inputData.writeFile(argument);
         continue;
 
 parseCommandLine_file:
