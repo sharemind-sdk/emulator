@@ -702,18 +702,22 @@ parseCommandLine_outFile:
         r.outFilename = argument;
         continue;
 
+#define SETOUTFILEFLAG(thisFlag,sThisFlag,otherFlag,sOtherFlag) \
+    do { \
+        if (r.outOpenFlag == (otherFlag)) \
+            throw UsageException{"Can't use both --" sOtherFlag " and --" \
+                                 sThisFlag "!"}; \
+        r.outOpenFlag = (thisFlag); \
+    } while (false)
+
 parseCommandLine_force:
 
-        if (r.outOpenFlag == O_APPEND)
-            throw UsageException{"Can't use both --append and --force!"};
-        r.outOpenFlag = O_TRUNC;
+        SETOUTFILEFLAG(O_TRUNC, "force", O_APPEND, "append");
         continue;
 
 parseCommandLine_append:
 
-        if (r.outOpenFlag == O_TRUNC)
-            throw UsageException{"Can't use both --force and --append!"};
-        r.outOpenFlag = O_APPEND;
+        SETOUTFILEFLAG(O_APPEND, "append", O_TRUNC, "force");
         continue;
 
 parseCommandLine_printArgs:
