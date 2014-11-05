@@ -45,7 +45,8 @@
 
 namespace sharemind {
 
-char buf8k[8192u];
+constexpr const size_t buf8k_size = 8192u;
+char buf8k[buf8k_size];
 
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, UsageException);
 SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
@@ -176,7 +177,7 @@ public: /* Methods: */
                                const char * const filename) final override
     {
         for (;;) {
-            const auto rr = ::read(m_fd, buf8k, 8192u);
+            const auto rr = ::read(m_fd, buf8k, buf8k_size);
             if (rr == 0u) {
                 return;
             } else if (rr > 0u) {
