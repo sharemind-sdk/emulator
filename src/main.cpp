@@ -442,9 +442,9 @@ inline void printUsage() {
             "where VALUE is the size of the given file." << endl << endl
          << "  --outFile=FILENAME  Writes the output to the given file instead "
             "of the standard output." << endl << endl
-         << "  --forceOutFile      Overwrites (truncates) the file given by "
+         << "  --force             Overwrites (truncates) the file given by "
             "--outFile=FILENAME if the file already exists." << endl << endl
-         << "  --appendOutFile     Appends to the file given by "
+         << "  --append            Appends to the file given by "
             "--outFile=FILENAME if the file already exists." << endl << endl
          << "  --argsOut           Stops processing any further arguments, "
             "outputs the argument stream and exits successfully."
@@ -567,15 +567,15 @@ inline CommandLineArgs parseCommandLine(const int argc,
                 const int fd = openOutFile(r.outFilename, r.outOpenFlag);
                 r.inputData.writeToFileDescriptor(fd, r.outFilename);
                 throw GracefulException{};
-            } else if (strcmp(argv[i] + 1u, "-forceOutFile") == 0) {
+            } else if (strcmp(argv[i] + 1u, "-force") == 0) {
                 if (r.outOpenFlag == O_APPEND)
-                    throw UsageException{"Can't use both --appendOutFile and "
-                                         "--forceOutFile!"};
+                    throw UsageException{"Can't use both --append and "
+                                         "--force!"};
                 r.outOpenFlag = O_TRUNC;
-            } else if (strcmp(argv[i] + 1u, "-appendOutFile") == 0) {
+            } else if (strcmp(argv[i] + 1u, "-append") == 0) {
                 if (r.outOpenFlag == O_TRUNC)
-                    throw UsageException{"Can't use both --forceOutFile and "
-                                         "--appendOutFile!"};
+                    throw UsageException{"Can't use both --force and "
+                                         "--append!"};
                 r.outOpenFlag = O_APPEND;
             } else {
                 throw UsageException{"Unrecognized argument given!",
