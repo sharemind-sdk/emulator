@@ -446,7 +446,7 @@ inline void printUsage() {
             "--outFile=FILENAME if the file already exists." << endl << endl
          << "  --append, -a        Appends to the file given by "
             "--outFile=FILENAME if the file already exists." << endl << endl
-         << "  --printArgs         Stops processing any further arguments, "
+         << "  --printArgs, -p     Stops processing any further arguments, "
             "outputs the argument stream and exits successfully."
          << endl << endl;
 }
@@ -563,7 +563,9 @@ inline CommandLineArgs parseCommandLine(const int argc,
                     throw UsageException{"Multiple --output=FILENAME "
                                          "arguments given!"};
                 r.outFilename = argv[i] + 10u;
-            } else if (strcmp(argv[i] + 1u, "-printArgs") == 0) {
+            } else if ((strcmp(argv[i] + 1u, "-printArgs") == 0)
+                       || (strcmp(argv[i] + 1u, "p") == 0))
+            {
                 const int fd = openOutFile(r.outFilename, r.outOpenFlag);
                 r.inputData.writeToFileDescriptor(fd, r.outFilename);
                 throw GracefulException{};
