@@ -26,6 +26,7 @@
 #include <sharemind/libmodapi/libmodapicxx.h>
 #include <sharemind/libvm/libvmcxx.h>
 #include <sharemind/ScopeExit.h>
+#include <signal.h>
 #include <sstream>
 #include <sys/stat.h>
 #include <system_error>
@@ -36,8 +37,6 @@
 #include "Configuration.h"
 #include "Syscalls.h"
 
-
-/// \todo handle SIGXFSZ and SIGPIPE
 
 #ifndef SHAREMIND_EMULATOR_VERSION
 #error SHAREMIND_EMULATOR_VERSION not defined!
@@ -61,6 +60,12 @@ SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileOpenException);
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileException);
 struct GracefulException {};
 struct WriteIntegralArgumentException {};
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
+                                     SigEmptySetException,
+                                     "sigemptyset() failed!");
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
+                                     SigActionException,
+                                     "sigaction() failed!");
 
 #define NESTED_SYSTEM_ERROR(Exception,str,...) \
     do { \
@@ -68,6 +73,14 @@ struct WriteIntegralArgumentException {};
             throw std::system_error(errno, std::system_category()); \
         } catch (...) { \
             std::throw_with_nested(Exception(str "!", str ": ", __VA_ARGS__)); \
+        } \
+    } while(false)
+#define NESTED_SYSTEM_ERROR2(...) \
+    do { \
+        try { \
+            throw std::system_error(errno, std::system_category()); \
+        } catch (...) { \
+            std::throw_with_nested(__VA_ARGS__); \
         } \
     } while(false)
 
@@ -750,6 +763,26 @@ ModuleApi modapi;
 int main(int argc, char * argv[]) {
     using namespace sharemind;
     try {
+        {
+            struct sigaction sa;
+            sa.sa_handler = SIG_IGN;
+            auto r = sigemptyset(&sa.sa_mask);
+            if (r != 0) {
+                assert(r == -1);
+                NESTED_SYSTEM_ERROR2(SigEmptySetException());
+            }
+            sa.sa_flags = 0;
+            for (const int s : {SIGPIPE, SIGXFSZ}) {
+                r = sigaction(s, &sa, nullptr);
+                if (r != 0) {
+                    assert(r == -1);
+                    NESTED_SYSTEM_ERROR2(SigActionException());
+                }
+            }
+
+            r = sigaction(SIGPIPE, &sa, nullptr);
+        }
+
         CommandLineArgs cmdLine{parseCommandLine(argc, argv)};
         const Configuration conf(cmdLine.configurationFilename);
 
