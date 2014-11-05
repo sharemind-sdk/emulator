@@ -471,6 +471,8 @@ inline void printUsage() {
             "--outFile=FILENAME if the file already exists." << endl << endl
          << "  --append, -a         Appends to the file given by "
             "--outFile=FILENAME if the file already exists." << endl << endl
+         << "  --discard, -d        Identical to --append --outFile=/dev/null."
+         << endl << endl
          << "  --printArgs, -p      Stops processing any further arguments, "
             "outputs the argument stream and exits successfully."
          << endl << endl;
@@ -525,6 +527,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
                 SHORTOPT_ARG('o', "An -o", "a FILENAME", outFile);
                 SHORTOPT('f', force);
                 SHORTOPT('a', append);
+                SHORTOPT('d', discard);
                 SHORTOPT('p', printArgs);
                 default: goto parseCommandLine_invalid;
             }
@@ -567,6 +570,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
         LONGOPT("printArgs", printArgs);
         LONGOPT("force", force);
         LONGOPT("append", append);
+        LONGOPT_ARG("discard", discard);
 
 parseCommandLine_invalid:
 
@@ -719,6 +723,12 @@ parseCommandLine_append:
 
         SETOUTFILEFLAG(O_APPEND, "append", O_TRUNC, "force");
         continue;
+
+parseCommandLine_discard:
+
+        SETOUTFILEFLAG(O_APPEND, "append", O_TRUNC, "force");
+        argument = "/dev/null";
+        goto parseCommandLine_outFile;
 
 parseCommandLine_printArgs:
 
