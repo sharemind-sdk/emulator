@@ -14,6 +14,7 @@
 #include <limits>
 #include <iostream>
 #include <sharemind/EndianMacros.h>
+#include <sharemind/MicrosecondTime.h>
 #include <system_error>
 #include <unistd.h>
 #include "Syscalls.h"
@@ -71,7 +72,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logMicroseconds,
     (void) crefs;
     (void) returnValue;
     assert(c);
-    std::cerr << "Process_logMicroseconds" << std::endl; /// \todo
+    std::cerr << "Global time is " << getUsTime() << " us."<< std::endl;
     return SHAREMIND_MODULE_API_0x1_OK;
 }
 
