@@ -380,9 +380,7 @@ public: /* Methods: */
         return args;
     }
 
-    void writeToFileDescriptor(const int fd,
-                               const char * const filename)
-    {
+    void writeToFileDescriptor(const int fd, const char * const filename) {
         while (!m_data.empty()) {
             InputData * const i = m_data.front();
             i->writeToFileDescriptor(fd, filename);
@@ -426,15 +424,16 @@ inline void printUsage() {
             "specified by the given configuration file given by the --conf= "
             "argument." << endl << endl
          << "Required arguments:" << endl << endl
-         << "  --conf=FILENAME, -c  Reads the configuration file from the given "
-            "location." << endl << endl
+         << "  --conf=FILENAME, -c  Reads the configuration file from the "
+            "given location." << endl << endl
          << "Optional arguments:" << endl << endl
          << "  --help, --usage, -h  Displays this help and exits successfully."
          << endl << endl
          << "  --version, -V        Outputs version information and exits "
             "successfully." << endl << endl
-         << "  --stdin, -t          Writes the contents from the standard input "
-            "to the argument stream. Can be given only once." << endl << endl
+         << "  --stdin, -t          Writes the contents from the standard "
+            "input to the argument stream. Can be given only once."
+         << endl << endl
          << "  --cstr=STRING, -s    Writes the literal STRING to the argument "
             "stream." << endl << endl
          << "  --xstr=HEXBYTES, -x  Writes the given hexadecimal bytes to the "
@@ -462,11 +461,12 @@ inline void printUsage() {
          << "  --cfile=FILENAME, -i" << endl
          << "                       Writes the given binary file to the "
             "argument stream." << endl << endl
-         << "  --file=FILENAME, -I  Identical to --size=VALUE --cfile=FILENAME, "
-            "where VALUE is the size of the given file." << endl << endl
+         << "  --file=FILENAME, -I  Identical to --size=VALUE "
+            "--cfile=FILENAME, where VALUE is the size of the given file."
+         << endl << endl
          << "  --outFile=FILENAME, -o" << endl
-         << "                       Writes the output to the given file instead "
-            "of the standard output." << endl << endl
+         << "                       Writes the output to the given file "
+            "instead of the standard output." << endl << endl
          << "  --force, -f          Overwrites (truncates) the file given by "
             "--outFile=FILENAME if the file already exists." << endl << endl
          << "  --append, -a         Appends to the file given by "
@@ -550,8 +550,8 @@ inline CommandLineArgs parseCommandLine(const int argc,
         LONGOPT("cstr", cstr);
         LONGOPT("xstr", xstr);
 
-#define HANDLE_INTARG(type) LONGOPT_ARG(#type,type); \
-                            LONGOPT_ARG("b" #type,b ## type)
+#define HANDLE_INTARG(type) LONGOPT_ARG(#type, type); \
+                            LONGOPT_ARG("b" #type, b ## type)
         HANDLE_INTARG(int16);
         HANDLE_INTARG(int32);
         HANDLE_INTARG(int64);
@@ -578,8 +578,7 @@ parseCommandLine_conf:
 
         assert(argument);
         if (r.configurationFilename)
-            throw UsageException{
-                "Multiple --conf=FILENAME arguments given!"};
+            throw UsageException{"Multiple --conf=FILENAME arguments given!"};
         r.configurationFilename = argument;
         continue;
 
@@ -631,17 +630,15 @@ parseCommandLine_xstr:
             inputData.writeIntegral<type ## _t, big>(argument); \
         } catch (const WriteIntegralArgumentException &) { \
             throw UsageException{ \
-                        "Invalid --" #argname "=VALUE argument " \
-                        "given!", \
-                        "Invalid --" #argname "=VALUE argument " \
-                        "given: ", \
+                        "Invalid --" #argname "=VALUE argument given!", \
+                        "Invalid --" #argname "=VALUE argument given: ", \
                         argument}; \
         } \
         continue;
 
 #define PROCESS_INTARG(type) \
-    PROCESS_INTARG__(type,type,false) \
-    PROCESS_INTARG__(b ## type,type,true)
+    PROCESS_INTARG__(type, type, false) \
+    PROCESS_INTARG__(b ## type, type, true)
 PROCESS_INTARG(int16)
 PROCESS_INTARG(int32)
 PROCESS_INTARG(int64)
@@ -701,24 +698,21 @@ parseCommandLine_file:
 parseCommandLine_outFile:
 
         if (r.outFilename)
-            throw UsageException{"Multiple --output=FILENAME "
-                                 "arguments given!"};
+            throw UsageException{"Multiple --output=FILENAME arguments given!"};
         r.outFilename = argument;
         continue;
 
 parseCommandLine_force:
 
         if (r.outOpenFlag == O_APPEND)
-            throw UsageException{"Can't use both --append and "
-                                 "--force!"};
+            throw UsageException{"Can't use both --append and --force!"};
         r.outOpenFlag = O_TRUNC;
         continue;
 
 parseCommandLine_append:
 
         if (r.outOpenFlag == O_TRUNC)
-            throw UsageException{"Can't use both --force and "
-                                 "--append!"};
+            throw UsageException{"Can't use both --force and --append!"};
         r.outOpenFlag = O_APPEND;
         continue;
 
