@@ -459,142 +459,220 @@ inline CommandLineArgs parseCommandLine(const int argc,
     programName = argv[0u];
     CommandLineArgs r;
     for (size_t i = 1u; i < static_cast<size_t>(argc); i++) {
-        if (argv[i][0u] == '-') {
-            if ((strncmp(argv[i] + 1u, "-conf=", 6u) == 0)
-                && (argv[i][7u] != '\0'))
-            {
-                if (r.configurationFilename)
-                    throw UsageException{
-                        "Multiple --conf=FILENAME arguments given!"};
-                r.configurationFilename = argv[i] + 7u;
-            } else if (strcmp(argv[i] + 1u, "-stdin") == 0) {
-                if (r.haveStdin)
-                    throw UsageException{"Multiple --stdin arguments given!"};
-                r.inputData.writeFile(STDIN_FILENO, "<STDIN>");
-                r.haveStdin = true;
-            } else if ((strcmp(argv[i] + 1u, "-help") == 0)
-                       || (strcmp(argv[i] + 1u, "-usage") == 0)) {
-                printUsage();
-                throw GracefulException{};
-            } else if ((strcmp(argv[i] + 1u, "-version") == 0)) {
-                std::cerr << "Emulator " SHAREMIND_EMULATOR_VERSION
-                          << std::endl;
-                throw GracefulException{};
-            } else if (strncmp(argv[i] + 1u, "-cstr=", 6u) == 0) {
-                const char * const str = argv[i] + 7u;
-                const auto size = strlen(str);
-                r.inputData.writeData(str, str + size);
-            } else if (strncmp(argv[i] + 1u, "-xstr=", 6u) == 0) {
-                for (const char * str = argv[i] + 7u; *str; str += 2u) {
-                    const auto getVal = [=](const char s) {
-                        switch (s) {
-                        case 'a' ... 'f': return (s - 'a') + 0xa;
-                        case 'A' ... 'F': return (s - 'A') + 0xA;
-                        case '0' ... '9': return (s - '0') + 0x0;
-                        default:
-                            throw UsageException{
-                                "Invalid --xstr=HEXBYTES argument given!",
-                                "Invalid --xstr=HEXBYTES argument given: ",
-                                argv[i]};
-                        }
-                    };
-                    r.inputData.writeData((getVal(*str) * 0xf)
-                                           + getVal(*(str + 1u)));
-                }
-            }
-            #define PROCESS_INTARG__(argname,type,big) \
-                else if (strncmp(argv[i] + 1u, \
-                                 "-" argname "=", \
-                                 1u + sizeof(argname)) == 0) \
-                { \
-                    try { \
-                        r.inputData.writeIntegral<type ## _t>( \
-                                argv[i] + 2u + sizeof(argname), \
-                                (big)); \
-                    } catch (const WriteIntegralArgumentException &) { \
-                        throw UsageException{ \
-                                    "Invalid --" argname "=VALUE argument " \
-                                    "given!", \
-                                    "Invalid --" argname "=VALUE argument " \
-                                    "given: ", \
-                                    argv[i]}; \
-                    } \
-                }
-            #define PROCESS_INTARG(type) \
-                PROCESS_INTARG__(#type,type,false) \
-                PROCESS_INTARG__("b" #type,type,true)
-            PROCESS_INTARG(int16)
-            PROCESS_INTARG(int32)
-            PROCESS_INTARG(int64)
-            PROCESS_INTARG(uint16)
-            PROCESS_INTARG(uint32)
-            PROCESS_INTARG(uint64)
-            else if (strncmp(argv[i] + 1u, "-size=", 6u) == 0) {
-                r.inputData.writeIntegral<uint64_t>(argv[i] + 7u);
-            } else if (strncmp(argv[i] + 1u, "-str=", 5u) == 0) {
-                const char * const str = argv[i] + 6u;
-                const auto size = strlen(str);
-                if (size > std::numeric_limits<uint64_t>::max())
-                    throw InputStringTooBigException{};
-                r.inputData.writeIntegral(static_cast<uint64_t>(size));
-                if (size > 0u)
-                    r.inputData.writeData(str, str + size);
-            } else if (strncmp(argv[i] + 1u, "-cfile=", 7u) == 0) {
-                r.inputData.writeFile(argv[i] + 8u);
-            } else if (strncmp(argv[i] + 1u, "-file=", 6u) == 0) {
-                const char * const fileName = argv[i] + 7u;
-                const int fd = FileInputData::open(fileName);
-                struct ::stat st;
-                const auto ret = fstat(fd, &st);
-                if (ret != 0) {
-                    assert(ret == -1);
-                    NESTED_SYSTEM_ERROR(InputFileOpenException,
-                                        "Unable to fstat() given input file",
-                                        fileName);
-                }
-                static_assert(std::numeric_limits<decltype(st.st_size)>::max()
-                              <= std::numeric_limits<uint64_t>::max(),
-                              "");
-                const uint64_t size =
-                        hostToLittleEndian(static_cast<uint64_t>(st.st_size));
-                r.inputData.writeData(&size, sizeof(size));
-                r.inputData.writeFile(fd, fileName);
-            } else if (strncmp(argv[i] + 1u, "-outFile=", 9u) == 0) {
-                if (r.outFilename)
-                    throw UsageException{"Multiple --output=FILENAME "
-                                         "arguments given!"};
-                r.outFilename = argv[i] + 10u;
-            } else if ((strcmp(argv[i] + 1u, "-printArgs") == 0)
-                       || (strcmp(argv[i] + 1u, "p") == 0))
-            {
-                const int fd = openOutFile(r.outFilename, r.outOpenFlag);
-                r.inputData.writeToFileDescriptor(fd, r.outFilename);
-                throw GracefulException{};
-            } else if ((strcmp(argv[i] + 1u, "-force") == 0)
-                       || (strcmp(argv[i] + 1u, "f") == 0))
-            {
-                if (r.outOpenFlag == O_APPEND)
-                    throw UsageException{"Can't use both --append and "
-                                         "--force!"};
-                r.outOpenFlag = O_TRUNC;
-            } else if ((strcmp(argv[i] + 1u, "-append") == 0)
-                       || (strcmp(argv[i] + 1u, "a") == 0))
-            {
-                if (r.outOpenFlag == O_TRUNC)
-                    throw UsageException{"Can't use both --force and "
-                                         "--append!"};
-                r.outOpenFlag = O_APPEND;
-            } else {
-                throw UsageException{"Unrecognized argument given!",
-                                     "Unrecognized argument given: ",
-                                     argv[i]};
-            }
-        } else {
+        const char * opt = argv[i];
+        if (opt[0u] != '-') {
             if (r.bytecodeFilename)
                 throw UsageException{"Multiple bytecode FILENAME arguments "
                                      "given!"};
             r.bytecodeFilename = argv[i];
+            continue;
         }
+
+        const char * argument = nullptr;
+        opt++;
+        if (opt[0u] != '-') {
+            if (opt[1u] != '\0')
+                goto parseCommandLine_invalid;
+#define SHORTOPT(name,label) case name: goto parseCommandLine_ ## label
+            switch (opt[0u]) {
+                SHORTOPT('h', help);
+                SHORTOPT('f', force);
+                SHORTOPT('a', append);
+                SHORTOPT('p', printArgs);
+                default: goto parseCommandLine_invalid;
+            }
+        }
+        opt++;
+
+#define LONGOPT(name,label) \
+    if ((strcmp(opt, name) == 0)) { \
+        goto parseCommandLine_ ## label; \
+    } else (void) 0
+#define LONGOPT_ARG(name,label) \
+    if ((strncmp(opt, name "=", sizeof(name)) == 0) \
+        && (opt[sizeof(name)] != '\0')) { \
+        argument = opt + sizeof(name); \
+        goto parseCommandLine_ ## label; \
+    } else (void) 0
+
+        LONGOPT_ARG("conf", conf);
+        LONGOPT("help", help);
+        LONGOPT("usage", help);
+        LONGOPT("version", version);
+        LONGOPT("stdin", stdin);
+        LONGOPT("cstr", cstr);
+        LONGOPT("xstr", xstr);
+
+#define HANDLE_INTARG(type) LONGOPT_ARG(#type,type); \
+                            LONGOPT_ARG("b" #type,b ## type)
+        HANDLE_INTARG(int16);
+        HANDLE_INTARG(int32);
+        HANDLE_INTARG(int64);
+        HANDLE_INTARG(uint16);
+        HANDLE_INTARG(uint32);
+        HANDLE_INTARG(uint64);
+
+        LONGOPT_ARG("size", uint64);
+        LONGOPT_ARG("str", str);
+        LONGOPT_ARG("cfile", cfile);
+        LONGOPT_ARG("file", file);
+        LONGOPT_ARG("outFile", outFile);
+        LONGOPT("printArgs", printArgs);
+        LONGOPT("force", force);
+        LONGOPT("append", append);
+
+parseCommandLine_invalid:
+
+        throw UsageException{"Unrecognized argument given!",
+                             "Unrecognized argument given: ",
+                             argv[i]};
+
+parseCommandLine_conf:
+
+        assert(argument);
+        if (r.configurationFilename)
+            throw UsageException{
+                "Multiple --conf=FILENAME arguments given!"};
+        r.configurationFilename = argument;
+        continue;
+
+parseCommandLine_help:
+
+        printUsage();
+        throw GracefulException{};
+
+parseCommandLine_version:
+
+        std::cerr << "Emulator " SHAREMIND_EMULATOR_VERSION << std::endl;
+        throw GracefulException{};
+
+parseCommandLine_stdin:
+
+        if (r.haveStdin)
+            throw UsageException{"Multiple --stdin arguments given!"};
+        r.inputData.writeFile(STDIN_FILENO, "<STDIN>");
+        r.haveStdin = true;
+        continue;
+
+parseCommandLine_cstr:
+
+        r.inputData.writeData(argument, argument + strlen(argument));
+        continue;
+
+parseCommandLine_xstr:
+
+        for (const char * str = argument; *str; str += 2u) {
+            const auto getVal = [=](const char s) {
+                switch (s) {
+                case 'a' ... 'f': return (s - 'a') + 0xa;
+                case 'A' ... 'F': return (s - 'A') + 0xA;
+                case '0' ... '9': return (s - '0') + 0x0;
+                default:
+                    throw UsageException{
+                        "Invalid --xstr=HEXBYTES argument given!",
+                        "Invalid --xstr=HEXBYTES argument given: ",
+                        argument};
+                }
+            };
+            r.inputData.writeData((getVal(*str) * 0xf)
+                                   + getVal(*(str + 1u)));
+        }
+        continue;
+
+#define PROCESS_INTARG__(argname,type,big) \
+    parseCommandLine_ ## argname: \
+        try { \
+            r.inputData.writeIntegral<type ## _t>(argument, (big)); \
+        } catch (const WriteIntegralArgumentException &) { \
+            throw UsageException{ \
+                        "Invalid --" #argname "=VALUE argument " \
+                        "given!", \
+                        "Invalid --" #argname "=VALUE argument " \
+                        "given: ", \
+                        argument}; \
+        } \
+        continue;
+
+#define PROCESS_INTARG(type) \
+    PROCESS_INTARG__(type,type,false) \
+    PROCESS_INTARG__(b ## type,type,true)
+PROCESS_INTARG(int16)
+PROCESS_INTARG(int32)
+PROCESS_INTARG(int64)
+PROCESS_INTARG(uint16)
+PROCESS_INTARG(uint32)
+PROCESS_INTARG(uint64)
+
+parseCommandLine_str:
+
+        {
+            const auto size = strlen(argument);
+            if (size > std::numeric_limits<uint64_t>::max())
+                throw InputStringTooBigException{};
+            r.inputData.writeIntegral(static_cast<uint64_t>(size));
+            if (size > 0u)
+                r.inputData.writeData(argument, argument + size);
+        }
+        continue;
+
+parseCommandLine_cfile:
+
+        r.inputData.writeFile(argv[i] + 8u);
+        continue;
+
+parseCommandLine_file:
+
+        {
+            const int fd = FileInputData::open(argument);
+            struct ::stat st;
+            const auto ret = fstat(fd, &st);
+            if (ret != 0) {
+                assert(ret == -1);
+                NESTED_SYSTEM_ERROR(InputFileOpenException,
+                                    "Unable to fstat() given input file",
+                                    argument);
+            }
+            static_assert(std::numeric_limits<decltype(st.st_size)>::max()
+                          <= std::numeric_limits<uint64_t>::max(),
+                          "");
+            const uint64_t size =
+                    hostToLittleEndian(static_cast<uint64_t>(st.st_size));
+            r.inputData.writeData(&size, sizeof(size));
+            r.inputData.writeFile(fd, argument);
+        }
+        continue;
+
+parseCommandLine_outFile:
+
+        if (r.outFilename)
+            throw UsageException{"Multiple --output=FILENAME "
+                                 "arguments given!"};
+        r.outFilename = argument;
+        continue;
+
+parseCommandLine_force:
+
+        if (r.outOpenFlag == O_APPEND)
+            throw UsageException{"Can't use both --append and "
+                                 "--force!"};
+        r.outOpenFlag = O_TRUNC;
+        continue;
+
+parseCommandLine_append:
+
+        if (r.outOpenFlag == O_TRUNC)
+            throw UsageException{"Can't use both --force and "
+                                 "--append!"};
+        r.outOpenFlag = O_APPEND;
+        continue;
+
+parseCommandLine_printArgs:
+
+        r.inputData.writeToFileDescriptor(openOutFile(r.outFilename,
+                                                      r.outOpenFlag),
+                                          r.outFilename);
+        throw GracefulException{};
+
     }
     if (!r.bytecodeFilename)
         throw UsageException{"No bytecode FILENAME argument given!"};
