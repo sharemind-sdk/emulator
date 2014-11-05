@@ -92,7 +92,7 @@ FUNCTION(GenerateManPage)
     SET(V "${SHAREMIND_EMULATOR_VERSION}")
     GetEmulatorLdLibraryPath(L)
     ADD_CUSTOM_COMMAND(TARGET Emulator POST_BUILD
-            COMMAND env "LD_LIBRARY_PATH=${L}" ${HELP2MAN}
+            COMMAND env "LD_LIBRARY_PATH=${L}" "LC_ALL=POSIX" ${HELP2MAN}
                     "--include=${CMAKE_CURRENT_SOURCE_DIR}/doc/Emulator.h2m"
                     "--output=${CMAKE_CURRENT_BINARY_DIR}/Emulator.1"
                     "--no-discard-stderr"
