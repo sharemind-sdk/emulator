@@ -411,43 +411,52 @@ inline void printUsage() {
             "specified by the given configuration file given by the --conf= "
             "argument." << endl << endl
          << "Required arguments:" << endl << endl
-         << "  --conf=FILENAME     Reads the configuration file from the given "
+         << "  --conf=FILENAME, -c  Reads the configuration file from the given "
             "location." << endl << endl
          << "Optional arguments:" << endl << endl
-         << "  --help, --usage     Displays this help and exits successfully."
+         << "  --help, --usage, -h  Displays this help and exits successfully."
          << endl << endl
-         << "  --version           Outputs version information and exits "
+         << "  --version, -V        Outputs version information and exits "
             "successfully." << endl << endl
-         << "  --stdin             Writes the contents from the standard input "
+         << "  --stdin, -t          Writes the contents from the standard input "
             "to the argument stream. Can be given only once." << endl << endl
-         << "  --cstr=STRING       Writes the literal STRING to the argument "
+         << "  --cstr=STRING, -s    Writes the literal STRING to the argument "
             "stream." << endl << endl
-         << "  --xstr=HEXBYTES     Writes the given hexadecimal bytes to the "
+         << "  --xstr=HEXBYTES, -x  Writes the given hexadecimal bytes to the "
             "argument stream." << endl << endl
          << "  --int16=VALUE, --int32=VALUE, --int64=VALUE, --uint16=VALUE"
             ", --uint32=VALUE, --uint64=VALUE" << endl
-         << "                      Writes the decimal VALUE to the argument "
+         << "                       Writes the decimal VALUE to the argument "
             "stream as a little-endian value of the respective type."
          << endl << endl
          << "  --bint16=VALUE, --bint32=VALUE, --bint64=VALUE, --buint16=VALUE"
             ", --buint32=VALUE, --buint64=VALUE" << endl
-         << "                      Writes the decimal VALUE to the argument "
+         << "                       Writes the decimal VALUE to the argument "
             "stream as a big-endian value of the respective type."
          << endl << endl
-         << "  --size=VALUE        Identical to --uint64=VALUE." << endl << endl
-         << "  --str=STRING        Identical to --size=VALUE --cstr=STRING, "
+         << "  --size=VALUE, -z     Identical to --uint64=VALUE."
+         << endl << endl
+         << "  -2                   Identical to --size=2 --uint16=VALUE."
+         << endl << endl
+         << "  -4                   Identical to --size=4 --uint32=VALUE."
+         << endl << endl
+         << "  -8                   Identical to --size=8 --uint64=VALUE."
+         << endl << endl
+         << "  --str=STRING, -S     Identical to --size=VALUE --cstr=STRING, "
             "where VALUE is the length of the given STRING." << endl << endl
-         << "  --cfile=FILENAME    Writes the given binary file to the "
+         << "  --cfile=FILENAME, -i" << endl
+         << "                       Writes the given binary file to the "
             "argument stream." << endl << endl
-         << "  --file=FILENAME     Identical to --size=VALUE --cfile=FILENAME, "
+         << "  --file=FILENAME, -I  Identical to --size=VALUE --cfile=FILENAME, "
             "where VALUE is the size of the given file." << endl << endl
-         << "  --outFile=FILENAME  Writes the output to the given file instead "
+         << "  --outFile=FILENAME, -o" << endl
+         << "                       Writes the output to the given file instead "
             "of the standard output." << endl << endl
-         << "  --force, -f         Overwrites (truncates) the file given by "
+         << "  --force, -f          Overwrites (truncates) the file given by "
             "--outFile=FILENAME if the file already exists." << endl << endl
-         << "  --append, -a        Appends to the file given by "
+         << "  --append, -a         Appends to the file given by "
             "--outFile=FILENAME if the file already exists." << endl << endl
-         << "  --printArgs, -p     Stops processing any further arguments, "
+         << "  --printArgs, -p      Stops processing any further arguments, "
             "outputs the argument stream and exits successfully."
          << endl << endl;
 }
@@ -473,9 +482,31 @@ inline CommandLineArgs parseCommandLine(const int argc,
         if (opt[0u] != '-') {
             if (opt[1u] != '\0')
                 goto parseCommandLine_invalid;
+
 #define SHORTOPT(name,label) case name: goto parseCommandLine_ ## label
+#define SHORTOPT_ARG(name,sName,aName,label) \
+    case name: \
+        if (++i >= static_cast<size_t>(argc)) \
+            throw UsageException{sName " option is missing " aName \
+                                 " argument"}; \
+        argument = argv[i]; \
+        goto parseCommandLine_ ## label
+
             switch (opt[0u]) {
+                SHORTOPT_ARG('c', "A -c", "a FILENAME", conf);
                 SHORTOPT('h', help);
+                SHORTOPT('V', version);
+                SHORTOPT('t', stdin);
+                SHORTOPT_ARG('s', "A -s", "a STRING", cstr);
+                SHORTOPT_ARG('x', "A -x", "a HEXBYTES", xstr);
+                SHORTOPT_ARG('z', "A -z", "a VALUE", size);
+                SHORTOPT_ARG('2', "A -2", "a VALUE", 2);
+                SHORTOPT_ARG('4', "A -4", "a VALUE", 4);
+                SHORTOPT_ARG('8', "An -8", "a VALUE", 8);
+                SHORTOPT_ARG('S', "A -S", "a STRING", str);
+                SHORTOPT_ARG('i', "An -i", "a FILENAME", cfile);
+                SHORTOPT_ARG('I', "An -I", "a FILENAME", file);
+                SHORTOPT_ARG('o', "An -o", "a FILENAME", outFile);
                 SHORTOPT('f', force);
                 SHORTOPT('a', append);
                 SHORTOPT('p', printArgs);
@@ -512,7 +543,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
         HANDLE_INTARG(uint32);
         HANDLE_INTARG(uint64);
 
-        LONGOPT_ARG("size", uint64);
+        LONGOPT_ARG("size", size);
         LONGOPT_ARG("str", str);
         LONGOPT_ARG("cfile", cfile);
         LONGOPT_ARG("file", file);
@@ -601,7 +632,17 @@ PROCESS_INTARG(int32)
 PROCESS_INTARG(int64)
 PROCESS_INTARG(uint16)
 PROCESS_INTARG(uint32)
+parseCommandLine_size:
 PROCESS_INTARG(uint64)
+
+#define PROCESS_SINT(width,bitwidth) \
+    parseCommandLine_ ## width: \
+        r.inputData.writeIntegral<uint64_t>(width ## u, false); \
+        goto parseCommandLine_uint ## bitwidth
+
+PROCESS_SINT(2, 16);
+PROCESS_SINT(4, 32);
+PROCESS_SINT(8, 64);
 
 parseCommandLine_str:
 
