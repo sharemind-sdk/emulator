@@ -395,7 +395,6 @@ int openOutFile(const char * const filename, const int openFlag) {
 
 struct CommandLineArgs {
     bool justExit = false;
-    InputStream inputData;
     bool haveStdin = false;
     const char * configurationFilename = nullptr;
     const char * bytecodeFilename = nullptr;
@@ -467,6 +466,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
     assert(argc >= 1);
     programName = argv[0u];
     CommandLineArgs r;
+    InputStream inputData;
     for (size_t i = 1u; i < static_cast<size_t>(argc); i++) {
         const char * opt = argv[i];
         if (opt[0u] != '-') {
@@ -581,13 +581,13 @@ parseCommandLine_stdin:
 
         if (r.haveStdin)
             throw UsageException{"Multiple --stdin arguments given!"};
-        r.inputData.writeFile(STDIN_FILENO, "<STDIN>");
+        inputData.writeFile(STDIN_FILENO, "<STDIN>");
         r.haveStdin = true;
         continue;
 
 parseCommandLine_cstr:
 
-        r.inputData.writeData(argument, argument + strlen(argument));
+        inputData.writeData(argument, argument + strlen(argument));
         continue;
 
 parseCommandLine_xstr:
@@ -605,15 +605,14 @@ parseCommandLine_xstr:
                         argument};
                 }
             };
-            r.inputData.writeData((getVal(*str) * 0xf)
-                                   + getVal(*(str + 1u)));
+            inputData.writeData((getVal(*str) * 0xf) + getVal(*(str + 1u)));
         }
         continue;
 
 #define PROCESS_INTARG__(argname,type,big) \
     parseCommandLine_ ## argname: \
         try { \
-            r.inputData.writeIntegral<type ## _t>(argument, (big)); \
+            inputData.writeIntegral<type ## _t>(argument, (big)); \
         } catch (const WriteIntegralArgumentException &) { \
             throw UsageException{ \
                         "Invalid --" #argname "=VALUE argument " \
@@ -637,7 +636,7 @@ PROCESS_INTARG(uint64)
 
 #define PROCESS_SINT(width,bitwidth) \
     parseCommandLine_ ## width: \
-        r.inputData.writeIntegral<uint64_t>(width ## u, false); \
+        inputData.writeIntegral<uint64_t>(width ## u, false); \
         goto parseCommandLine_uint ## bitwidth
 
 PROCESS_SINT(2, 16);
@@ -650,15 +649,15 @@ parseCommandLine_str:
             const auto size = strlen(argument);
             if (size > std::numeric_limits<uint64_t>::max())
                 throw InputStringTooBigException{};
-            r.inputData.writeIntegral(static_cast<uint64_t>(size));
+            inputData.writeIntegral(static_cast<uint64_t>(size));
             if (size > 0u)
-                r.inputData.writeData(argument, argument + size);
+                inputData.writeData(argument, argument + size);
         }
         continue;
 
 parseCommandLine_cfile:
 
-        r.inputData.writeFile(argv[i] + 8u);
+        inputData.writeFile(argv[i] + 8u);
         continue;
 
 parseCommandLine_file:
@@ -678,8 +677,8 @@ parseCommandLine_file:
                           "");
             const uint64_t size =
                     hostToLittleEndian(static_cast<uint64_t>(st.st_size));
-            r.inputData.writeData(&size, sizeof(size));
-            r.inputData.writeFile(fd, argument);
+            inputData.writeData(&size, sizeof(size));
+            inputData.writeFile(fd, argument);
         }
         continue;
 
@@ -710,11 +709,11 @@ parseCommandLine_append:
 parseCommandLine_printArgs:
 
 
-        r.inputData.writeToFileDescriptor(r.outFilename
-                                          ? openOutFile(r.outFilename,
-                                                        r.outOpenFlag)
-                                          : STDOUT_FILENO,
-                                          r.outFilename);
+        inputData.writeToFileDescriptor(r.outFilename
+                                        ? openOutFile(r.outFilename,
+                                                      r.outOpenFlag)
+                                        : STDOUT_FILENO,
+                                        r.outFilename);
         throw GracefulException{};
 
     }
@@ -722,6 +721,7 @@ parseCommandLine_printArgs:
         throw UsageException{"No bytecode FILENAME argument given!"};
     if (!r.configurationFilename)
         throw UsageException{"No --conf=FILENAME argument given!"};
+    processArguments = inputData.readArguments();
     return r;
 }
 
@@ -751,8 +751,6 @@ int main(int argc, char * argv[]) {
     using namespace sharemind;
     try {
         CommandLineArgs cmdLine{parseCommandLine(argc, argv)};
-        processArguments = cmdLine.inputData.readArguments();
-
         const Configuration conf(cmdLine.configurationFilename);
 
         for (const auto & m : conf.moduleList())
