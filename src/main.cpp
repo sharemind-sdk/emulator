@@ -709,8 +709,11 @@ parseCommandLine_append:
 
 parseCommandLine_printArgs:
 
-        r.inputData.writeToFileDescriptor(openOutFile(r.outFilename,
-                                                      r.outOpenFlag),
+
+        r.inputData.writeToFileDescriptor(r.outFilename
+                                          ? openOutFile(r.outFilename,
+                                                        r.outOpenFlag)
+                                          : STDOUT_FILENO,
                                           r.outFilename);
         throw GracefulException{};
 
