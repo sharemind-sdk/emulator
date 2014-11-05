@@ -270,22 +270,21 @@ public: /* Methods: */
         }
     }
 
-    template <typename T>
-    inline void writeIntegral(T value, bool bigEndian = false) {
+    template <typename T, bool bigEndian = false>
+    inline void writeIntegral(T value) {
         value = bigEndian ? hostToBigEndian(value) : hostToLittleEndian(value);
         char data[sizeof(value)];
         ::memcpy(data, &value, sizeof(value));
         writeData(data, data + sizeof(value));
     }
 
-    template <typename T>
-    inline void writeIntegral(const char * const input, bool bigEndian = false)
-    {
+    template <typename T, bool bigEndian = false>
+    inline void writeIntegral(const char * const input) {
         std::istringstream iss{std::string{input}};
         T integer;
         if ((iss >> integer).fail())
             throw WriteIntegralArgumentException{};
-        writeIntegral(integer, bigEndian);
+        writeIntegral<T, bigEndian>(integer);
     }
 
     inline void readData(void * buf, size_t size) {
@@ -625,7 +624,7 @@ parseCommandLine_xstr:
 #define PROCESS_INTARG__(argname,type,big) \
     parseCommandLine_ ## argname: \
         try { \
-            inputData.writeIntegral<type ## _t>(argument, (big)); \
+            inputData.writeIntegral<type ## _t, big>(argument); \
         } catch (const WriteIntegralArgumentException &) { \
             throw UsageException{ \
                         "Invalid --" #argname "=VALUE argument " \
@@ -649,7 +648,7 @@ PROCESS_INTARG(uint64)
 
 #define PROCESS_SINT(width,bitwidth) \
     parseCommandLine_ ## width: \
-        inputData.writeIntegral<uint64_t>(width ## u, false); \
+        inputData.writeIntegral<uint64_t>(width ## u); \
         goto parseCommandLine_uint ## bitwidth
 
 PROCESS_SINT(2, 16);
