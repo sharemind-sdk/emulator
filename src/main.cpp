@@ -381,12 +381,9 @@ private: /* Fields: */
 
 };
 
-int openOutFile(const char * const filename, bool force) {
-    const int openFlags = force
-                        ? O_WRONLY | O_CREAT | O_TRUNC
-                        : O_WRONLY | O_CREAT | O_EXCL;
+int openOutFile(const char * const filename, const int openFlag) {
     const int fd = ::open(filename,
-                          openFlags,
+                          O_WRONLY | O_CREAT | openFlag,
                           S_IRUSR | S_IWUSR | S_IRGRP);
     if (fd == -1)
         NESTED_SYSTEM_ERROR(OutputFileOpenException,
@@ -402,7 +399,7 @@ struct CommandLineArgs {
     const char * configurationFilename = nullptr;
     const char * bytecodeFilename = nullptr;
     const char * outFilename = nullptr;
-    bool forceOutFile = false;
+    int outOpenFlag = O_EXCL;
 };
 
 inline void printUsage() {
@@ -445,7 +442,9 @@ inline void printUsage() {
             "where VALUE is the size of the given file." << endl << endl
          << "  --outFile=FILENAME  Writes the output to the given file instead "
             "of the standard output." << endl << endl
-         << "  --forceOutFile      Overwrites the file given by "
+         << "  --forceOutFile      Overwrites (truncates) the file given by "
+            "--outFile=FILENAME if the file already exists." << endl << endl
+         << "  --appendOutFile     Appends to the file given by "
             "--outFile=FILENAME if the file already exists." << endl << endl
          << "  --argsOut           Stops processing any further arguments, "
             "outputs the argument stream and exits successfully."
@@ -565,11 +564,19 @@ inline CommandLineArgs parseCommandLine(const int argc,
                                          "arguments given!"};
                 r.outFilename = argv[i] + 10u;
             } else if (strcmp(argv[i] + 1u, "-argsOut") == 0) {
-                const int fd = openOutFile(r.outFilename, r.forceOutFile);
+                const int fd = openOutFile(r.outFilename, r.outOpenFlag);
                 r.inputData.writeToFileDescriptor(fd, r.outFilename);
                 throw GracefulException{};
             } else if (strcmp(argv[i] + 1u, "-forceOutFile") == 0) {
-                r.forceOutFile = true;
+                if (r.outOpenFlag == O_APPEND)
+                    throw UsageException{"Can't use both --appendOutFile and "
+                                         "--forceOutFile!"};
+                r.outOpenFlag = O_TRUNC;
+            } else if (strcmp(argv[i] + 1u, "-appendOutFile") == 0) {
+                if (r.outOpenFlag == O_TRUNC)
+                    throw UsageException{"Can't use both --forceOutFile and "
+                                         "--appendOutFile!"};
+                r.outOpenFlag = O_APPEND;
             } else {
                 throw UsageException{"Unrecognized argument given!",
                                      "Unrecognized argument given: ",
@@ -663,7 +670,7 @@ int main(int argc, char * argv[]) {
                 return -1;
             }
             const int fd = openOutFile(cmdLine.outFilename,
-                                       cmdLine.forceOutFile);
+                                       cmdLine.outOpenFlag);
             processResultsStream = fd;
             return fd;
         }();
