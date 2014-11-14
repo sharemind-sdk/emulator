@@ -20,6 +20,7 @@
 #include <iosfwd>
 #include <list>
 #include <memory>
+#include <sharemind/compiler-support/GccVersion.h>
 #include <sharemind/Concat.h>
 #include <sharemind/EndianMacros.h>
 #include <sharemind/Exception.h>
@@ -366,7 +367,12 @@ public: /* Methods: */
                     #ifndef NDEBUG
                     const auto r =
                     #endif
+                    #if defined(SHAREMIND_GCC_VERSION) \
+                            && SHAREMIND_GCC_VERSION < 40800
+                            args.insert(std::move(argName), value);
+                    #else
                             args.emplace(std::move(argName), value);
+                    #endif
                     assert(r.second);
                 } catch (...) {
                     delete value;
