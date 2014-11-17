@@ -49,6 +49,10 @@ constexpr const size_t buf8k_size = 8192u;
 char buf8k[buf8k_size];
 
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, UsageException);
+SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, ModuleLoadException);
+SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, ModuleInitException);
+SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, PdCreateException);
+SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, PdStartException);
 SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
                                      PdkNotFoundException,
                                      "Protection domain kind not found!");
@@ -68,12 +72,15 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
                                      SigActionException,
                                      "sigaction() failed!");
 
+#define NESTED_THROW_CONCAT_EXCEPTION(Exception,str,...) \
+    std::throw_with_nested(Exception{str "!", str ": ", __VA_ARGS__});
+
 #define NESTED_SYSTEM_ERROR(Exception,str,...) \
     do { \
         try { \
             throw std::system_error(errno, std::system_category()); \
         } catch (...) { \
-            std::throw_with_nested(Exception(str "!", str ": ", __VA_ARGS__)); \
+            NESTED_THROW_CONCAT_EXCEPTION(Exception, str, __VA_ARGS__); \
         } \
     } while(false)
 #define NESTED_SYSTEM_ERROR2(...) \
@@ -802,18 +809,53 @@ int main(int argc, char * argv[]) {
 
         CommandLineArgs cmdLine{parseCommandLine(argc, argv)};
         const Configuration conf(cmdLine.configurationFilename);
-
-        for (const auto & m : conf.moduleList())
-            (new Module(modapi,
-                        m.filename.c_str(),
-                        m.configurationFile.c_str()))->init();
+        for (const auto & m : conf.moduleList()) {
+            Module * const module = [&]() {
+                try {
+                    return new Module{modapi,
+                                      m.filename.c_str(),
+                                      m.configurationFile.c_str()};
+                } catch (...) {
+                    NESTED_THROW_CONCAT_EXCEPTION(
+                                ModuleLoadException,
+                                "Failed to load module",
+                                m.filename);
+                }
+            }();
+            try {
+                module->init();
+            } catch (...) {
+                NESTED_THROW_CONCAT_EXCEPTION(
+                            ModuleInitException,
+                            "Failed to initialize module",
+                            m.filename);
+            }
+        }
         SHAREMIND_SCOPE_EXIT(while (modapi.numPds() > 0u) delete modapi.pd(0u));
         for (const auto & pd : conf.protectionDomainList()) {
             Pdk * const pdk = modapi.findPdk(pd.kind.c_str());
             if (!pdk)
                 throw PdkNotFoundException{};
-            (new Pd(*pdk, pd.name.c_str(), pd.configurationFile.c_str()))
-                    ->start();
+            Pd * const protectionDomain = [&]() {
+                try {
+                    return new Pd{*pdk,
+                                  pd.name.c_str(),
+                                  pd.configurationFile.c_str()};
+                } catch (...) {
+                    NESTED_THROW_CONCAT_EXCEPTION(
+                                PdCreateException,
+                                "Failed to create protection domain",
+                                pd.name);
+                }
+            }();
+            try {
+                protectionDomain->start();
+            } catch (...) {
+                NESTED_THROW_CONCAT_EXCEPTION(
+                            PdStartException,
+                            "Failed to start protection domain",
+                            pd.name);
+            }
         }
 
         Vm vm{[](const char * name) -> SharemindSyscallWrapper {
