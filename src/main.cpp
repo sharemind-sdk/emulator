@@ -253,7 +253,7 @@ public: /* Methods: */
                 (m_state == BUFFER)
                 ? *static_cast<BufferInputData *>(*m_data.rbegin())
                 : [this]() -> BufferInputData & {
-                    const auto bit = new BufferInputData();
+                    const auto bit = new BufferInputData{};
                     try {
                         m_data.push_back(bit);
                         m_state = BUFFER;
@@ -268,7 +268,7 @@ public: /* Methods: */
 
     template <typename ... Args>
     inline void writeFile(Args && ... args) {
-        const auto fit = new FileInputData(std::forward<Args>(args)...);
+        const auto fit = new FileInputData{std::forward<Args>(args)...};
         try {
             m_data.push_back(fit);
             m_state = FILE;
