@@ -24,6 +24,7 @@
 #include <sharemind/Concat.h>
 #include <sharemind/EndianMacros.h>
 #include <sharemind/Exception.h>
+#include <sharemind/libfmodapi/libfmodapicxx.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
 #include <sharemind/libvm/libvmcxx.h>
 #include <sharemind/ScopeExit.h>
@@ -49,6 +50,8 @@ constexpr const size_t buf8k_size = 8192u;
 char buf8k[buf8k_size];
 
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, UsageException);
+SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, FacilityModuleLoadException);
+SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, FacilityModuleInitException);
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, ModuleLoadException);
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, ModuleInitException);
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, PdCreateException);
@@ -780,7 +783,13 @@ inline void printException(const std::exception & e) noexcept {
     printException__(e, 1u, levels);
 }
 
-ModuleApi modapi;
+FacilityModuleApi fmodapi;
+ModuleApi modapi{[](const char * const signature)
+                   { return fmodapi.findModuleFacility(signature); },
+                 [](const char * const signature)
+                   { return fmodapi.findPdFacility(signature); },
+                 [](const char * const signature)
+                   { return fmodapi.findPdpiFacility(signature); }};
 
 } // namespace sharemind {
 
@@ -809,6 +818,28 @@ int main(int argc, char * argv[]) {
 
         CommandLineArgs cmdLine{parseCommandLine(argc, argv)};
         const Configuration conf(cmdLine.configurationFilename);
+        for (const auto & fm : conf.facilityModuleList()) {
+            FacilityModule * const fmodule = [&]() {
+                try {
+                    return new FacilityModule{fmodapi,
+                                              fm.filename.c_str(),
+                                              fm.configurationFile.c_str()};
+                } catch (...) {
+                    NESTED_THROW_CONCAT_EXCEPTION(
+                                FacilityModuleLoadException,
+                                "Failed to load facility module",
+                                fm.filename);
+                }
+            }();
+            try {
+                fmodule->init();
+            } catch (...) {
+                NESTED_THROW_CONCAT_EXCEPTION(
+                            FacilityModuleInitException,
+                            "Failed to initialize facility module",
+                            fm.filename);
+            }
+        }
         for (const auto & m : conf.moduleList()) {
             Module * const module = [&]() {
                 try {

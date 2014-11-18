@@ -24,7 +24,12 @@ Configuration::Configuration(const std::string & filename) {
         // Load module and protection domain lists:
         for (const boost::property_tree::ptree::value_type & v : config) {
             const std::string & section(v.first);
-            if (section.find("Module") == 0u) {
+            if (section.find("FacilityModule") == 0u) {
+                m_facilityModuleList.emplace_back(
+                        FacilityModuleEntry{
+                            v.second.get<std::string>("File"),
+                            v.second.get<std::string>("Configuration", "")});
+            } else if (section.find("Module") == 0u) {
                 m_moduleList.emplace_back(
                         ModuleEntry{
                             v.second.get<std::string>("File"),

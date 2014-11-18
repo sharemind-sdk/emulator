@@ -1,9 +1,15 @@
-[Module1]
+[FacilityModule myfacility]
+File = libmyfacility.so
+#Configuration =
+
+[Module algorithms]
 File = libsharemind_mod_algorithms.so
-[Module2]
+#Configuration =
+
+[Module a3p]
 File = libsharemind_mod_additive3p_emu.so
 
-[ProtectionDomain1]
+[ProtectionDomain a3p]
 Name = pd_a3p
 Kind = additive3pp
 Configuration = additive3pp.cfg

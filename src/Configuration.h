@@ -33,14 +33,19 @@ public: /* Types: */
             DuplicatePdNameException,
             "Duplicate protection domain name in configuration!");
 
-    struct ProtectionDomainEntry {
-        std::string name;
-        std::string kind;
+    struct FacilityModuleEntry {
+        std::string filename;
         std::string configurationFile;
     };
 
     struct ModuleEntry {
         std::string filename;
+        std::string configurationFile;
+    };
+
+    struct ProtectionDomainEntry {
+        std::string name;
+        std::string kind;
         std::string configurationFile;
     };
 
@@ -52,6 +57,9 @@ public: /* Methods: */
      */
     Configuration(const std::string & filename);
 
+    inline const std::vector<FacilityModuleEntry> & facilityModuleList() const noexcept
+    { return m_facilityModuleList; }
+
     inline const std::vector<ModuleEntry> & moduleList() const noexcept
     { return m_moduleList; }
 
@@ -61,6 +69,9 @@ public: /* Methods: */
 
 
 private: /* Fields: */
+
+    /** The facility module list: */
+    std::vector<FacilityModuleEntry> m_facilityModuleList;
 
     /** The module list: */
     std::vector<ModuleEntry> m_moduleList;
