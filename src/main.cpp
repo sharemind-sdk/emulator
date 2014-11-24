@@ -21,6 +21,7 @@
 #include <list>
 #include <memory>
 #include <sharemind/compiler-support/GccVersion.h>
+#include <sharemind/compiler-support/GccPR54277.h>
 #include <sharemind/Concat.h>
 #include <sharemind/EndianMacros.h>
 #include <sharemind/Exception.h>
@@ -258,8 +259,8 @@ public: /* Methods: */
                 : [this]() -> BufferInputData & {
                     const auto bit = new BufferInputData{};
                     try {
-                        m_data.push_back(bit);
-                        m_state = BUFFER;
+                        SHAREMIND_GCCPR54277_WORKAROUND m_data.push_back(bit);
+                        SHAREMIND_GCCPR54277_WORKAROUND m_state = BUFFER;
                         return *bit;
                     } catch (...) {
                         delete bit;
