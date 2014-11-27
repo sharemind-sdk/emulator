@@ -67,6 +67,7 @@ SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, OutputFileOpenException);
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, OutputFileException);
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileOpenException);
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileException);
+SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, ProgramLoadException);
 struct GracefulException {};
 struct WriteIntegralArgumentException {};
 SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
@@ -902,7 +903,13 @@ int main(int argc, char * argv[]) {
               }};
         Program program{vm};
         try {
-            program.loadFromFile(cmdLine.bytecodeFilename);
+            try {
+                program.loadFromFile(cmdLine.bytecodeFilename);
+            } catch (...) {
+                NESTED_THROW_CONCAT_EXCEPTION(ProgramLoadException,
+                                              "Failed to load program bytecode",
+                                              cmdLine.bytecodeFilename);
+            }
         } catch (const Program::Exception & e) {
             const auto pos =
                     static_cast<const char *>(program.lastParsePosition());
