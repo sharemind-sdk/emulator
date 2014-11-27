@@ -77,7 +77,7 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
                                      "sigaction() failed!");
 
 #define NESTED_THROW_CONCAT_EXCEPTION(Exception,str,...) \
-    std::throw_with_nested(Exception{str "!", str ": ", __VA_ARGS__});
+    std::throw_with_nested(Exception{str "!", str ": ", __VA_ARGS__})
 
 #define NESTED_SYSTEM_ERROR(Exception,str,...) \
     do { \
