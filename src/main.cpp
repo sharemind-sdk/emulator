@@ -903,19 +903,7 @@ int main(int argc, char * argv[]) {
               }};
         Program program{vm};
         try {
-            try {
-                program.loadFromFile(cmdLine.bytecodeFilename);
-            } catch (const Program::Exception & e) {
-                const auto pos =
-                        static_cast<const char *>(program.lastParsePosition());
-                if (e.code() == SHAREMIND_VM_PREPARE_UNDEFINED_BIND) {
-                    std::cerr << "System call binding was: " << pos << std::endl;
-                } else if (e.code() == SHAREMIND_VM_PREPARE_UNDEFINED_PDBIND) {
-                    std::cerr << "Protection domain binding was: " << pos
-                              << std::endl;
-                }
-                throw;
-            }
+            program.loadFromFile(cmdLine.bytecodeFilename);
         } catch (...) {
             NESTED_THROW_CONCAT_EXCEPTION(ProgramLoadException,
                                           "Failed to load program bytecode",
