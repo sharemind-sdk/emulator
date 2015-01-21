@@ -1,16 +1,25 @@
-[FacilityModule myfacility]
-File = libmyfacility.so
+[FacilityModule loghard]
+File = libsharemind_facility_loghard.so
+Configuration = backend logger [Emulator] module Logger stderr
+
+[FacilityModule executionprofiler]
+File = libsharemind_facility_executionprofiler.so
+Configuration = Logger emulator-profile.csv
+
+[Module executionprofiler]
+File = libsharemind_mod_executionprofiler.so
 #Configuration =
 
 [Module algorithms]
 File = libsharemind_mod_algorithms.so
 #Configuration =
 
-[Module a3p]
-File = libsharemind_mod_additive3p_emu.so
+[Module shared3p]
+File = libsharemind_mod_shared3p_emu.so
+#Configuration =
 
-[ProtectionDomain a3p]
-Name = pd_a3p
-Kind = additive3pp
-Configuration = additive3pp.cfg
+[ProtectionDomain shared3p]
+Name = pd_shared3p
+Kind = shared3p
+Configuration = shared3p_emu.cfg
 
