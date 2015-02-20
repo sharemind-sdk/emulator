@@ -65,15 +65,16 @@ public: /* Methods: */
      * \brief Reads the miner configuration from given section of the given file.
      * \throws Exception on parse or configuration error.
      */
-    Configuration(const std::string & filename);
+    Configuration(std::string const & filename);
 
-    inline const std::vector<FacilityModuleEntry> & facilityModuleList() const noexcept
+    inline std::vector<FacilityModuleEntry> const & facilityModuleList()
+            const noexcept
     { return m_facilityModuleList; }
 
-    inline const std::vector<ModuleEntry> & moduleList() const noexcept
+    inline std::vector<ModuleEntry> const & moduleList() const noexcept
     { return m_moduleList; }
 
-    inline const std::vector<ProtectionDomainEntry> & protectionDomainList()
+    inline std::vector<ProtectionDomainEntry> const & protectionDomainList()
             const noexcept
     { return m_protectionDomainList; }
 

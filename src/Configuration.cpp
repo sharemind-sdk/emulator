@@ -26,14 +26,14 @@
 
 namespace sharemind {
 
-Configuration::Configuration(const std::string & filename) {
+Configuration::Configuration(std::string const & filename) {
     try {
         boost::property_tree::ptree config;
         boost::property_tree::read_ini(filename, config);
 
         // Load module and protection domain lists:
-        for (const boost::property_tree::ptree::value_type & v : config) {
-            const std::string & section(v.first);
+        for (boost::property_tree::ptree::value_type const & v : config) {
+            std::string const & section = v.first;
             if (section.find("FacilityModule") == 0u) {
                 m_facilityModuleList.emplace_back(
                         FacilityModuleEntry{
@@ -47,9 +47,9 @@ Configuration::Configuration(const std::string & filename) {
             } else if (section.find("ProtectionDomain") == 0u) {
                 ProtectionDomainEntry newProtectionDomain;
                 // check if new MinerNode is unique
-                for (const ProtectionDomainEntry & e : m_protectionDomainList)
+                for (ProtectionDomainEntry const & e : m_protectionDomainList)
                     if (e.name == newProtectionDomain.name)
-                        throw DuplicatePdNameException();
+                        throw DuplicatePdNameException{};
 
                 // Now we have found a unique ProtectionDomainX section.
                 newProtectionDomain.name = v.second.get<std::string>("Name");
@@ -60,8 +60,8 @@ Configuration::Configuration(const std::string & filename) {
                             std::move(newProtectionDomain));
             }
         }
-    } catch (const boost::property_tree::ptree_error & error) {
-        std::throw_with_nested(ParseException());
+    } catch (boost::property_tree::ptree_error const & error) {
+        std::throw_with_nested(ParseException{});
     }
 }
 

@@ -57,7 +57,7 @@
 
 namespace sharemind {
 
-constexpr const size_t buf8k_size = 8192u;
+constexpr size_t const buf8k_size = 8192u;
 char buf8k[buf8k_size];
 
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, UsageException);
@@ -93,7 +93,7 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
 #define NESTED_SYSTEM_ERROR(Exception,str,...) \
     do { \
         try { \
-            throw std::system_error(errno, std::system_category()); \
+            throw std::system_error{errno, std::system_category()}; \
         } catch (...) { \
             NESTED_THROW_CONCAT_EXCEPTION(Exception, str, __VA_ARGS__); \
         } \
@@ -101,13 +101,13 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
 #define NESTED_SYSTEM_ERROR2(...) \
     do { \
         try { \
-            throw std::system_error(errno, std::system_category()); \
+            throw std::system_error{errno, std::system_category()}; \
         } catch (...) { \
             std::throw_with_nested(__VA_ARGS__); \
         } \
     } while(false)
 
-const char * programName = nullptr;
+char const * programName = nullptr;
 
 SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
                                      InputException,
@@ -116,18 +116,18 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
 struct InputData {
     virtual ~InputData() noexcept {}
     virtual size_t read(void * buf, size_t size) = 0;
-    virtual void writeToFileDescriptor(const int fd,
-                                       const char * const filename) = 0;
+    virtual void writeToFileDescriptor(int const fd,
+                                       char const * const filename) = 0;
 };
 
 class BufferInputData final: public InputData {
 
 public: /* Methods: */
 
-    inline void write(const char c) { m_data.push_back(c); }
+    inline void write(char const c) { m_data.push_back(c); }
 
-    inline void write(const void * const data, const size_t size) {
-        const char * const d = static_cast<const char *>(data);
+    inline void write(void const * const data, size_t const size) {
+        char const * const d = static_cast<char const *>(data);
         write(d, d + size);
     }
 
@@ -136,26 +136,26 @@ public: /* Methods: */
 
     size_t read(void * buf, size_t size) final override {
         assert(size > 0u);
-        const size_t dataLeft = m_data.size() - m_pos;
+        size_t const dataLeft = m_data.size() - m_pos;
         if (dataLeft == 0u)
             return 0u;
-        const size_t toRead = std::min(size, dataLeft);
+        size_t const toRead = std::min(size, dataLeft);
         ::memcpy(buf, m_data.data() + m_pos, toRead);
         m_pos += toRead;
         return toRead;
     }
 
-    void writeToFileDescriptor(const int fd,
-                               const char * const filename) final override
+    void writeToFileDescriptor(int const fd,
+                               char const * const filename) final override
     { writeToFileDescriptor(fd, filename, m_data.data(), m_data.size()); }
 
-    static void writeToFileDescriptor(const int fd,
-                                      const char * const filename,
-                                      const char * buf,
+    static void writeToFileDescriptor(int const fd,
+                                      char const * const filename,
+                                      char const * buf,
                                       size_t size)
     {
         do {
-            const auto r = ::write(fd, buf, size);
+            auto const r = ::write(fd, buf, size);
             if (r > 0) {
                 assert(static_cast<size_t>(r) <= size);
                 size -= static_cast<size_t>(r);
@@ -183,14 +183,14 @@ class FileInputData final: public InputData {
 
 public: /* Methods: */
 
-    inline FileInputData(const int fd, const char * const filename)
-        : m_fd(fd)
-        , m_filename(filename)
+    inline FileInputData(int const fd, char const * const filename)
+        : m_fd{fd}
+        , m_filename{filename}
     {}
 
-    inline FileInputData(const char * const filename)
-        : m_fd(open(filename))
-        , m_filename(filename)
+    inline FileInputData(char const * const filename)
+        : m_fd{open(filename)}
+        , m_filename{filename}
     {}
 
     inline ~FileInputData() noexcept final override { ::close(m_fd); }
@@ -198,7 +198,7 @@ public: /* Methods: */
     inline size_t read(void * buf, size_t size) final override {
         assert(size > 0u);
         for (;;) {
-            const ssize_t r = ::read(m_fd, buf, size);
+            ssize_t const r = ::read(m_fd, buf, size);
             if (r >= 0)
                 return r;
             assert(r == -1);
@@ -209,11 +209,11 @@ public: /* Methods: */
         }
     }
 
-    void writeToFileDescriptor(const int fd,
-                               const char * const filename) final override
+    void writeToFileDescriptor(int const fd,
+                               char const * const filename) final override
     {
         for (;;) {
-            const auto rr = ::read(m_fd, buf8k, buf8k_size);
+            auto const rr = ::read(m_fd, buf8k, buf8k_size);
             if (rr == 0u) {
                 return;
             } else if (rr > 0u) {
@@ -231,14 +231,14 @@ public: /* Methods: */
         }
     }
 
-    static int open(const char * filename) {
+    static int open(char const * const filename) {
         char * const realPath = ::realpath(filename, nullptr);
         if (!realPath)
             NESTED_SYSTEM_ERROR(InputFileOpenException,
                                 "realpath() failed",
                                 filename);
         SHAREMIND_SCOPE_EXIT(::free(realPath));
-        const int fd = ::open(realPath, O_RDONLY);
+        int const fd = ::open(realPath, O_RDONLY);
         if (fd != -1)
             return fd;
         NESTED_SYSTEM_ERROR(InputFileOpenException,
@@ -248,8 +248,8 @@ public: /* Methods: */
 
 private: /* Fields: */
 
-    int m_fd;
-    const char * const m_filename;
+    int const m_fd;
+    char const * const m_filename;
 
 };
 
@@ -268,7 +268,7 @@ public: /* Methods: */
                 (m_state == BUFFER)
                 ? *static_cast<BufferInputData *>(*m_data.rbegin())
                 : [this]() -> BufferInputData & {
-                    const auto bit = new BufferInputData{};
+                    auto const bit = new BufferInputData{};
                     try {
                         SHAREMIND_GCCPR54277_WORKAROUND m_data.push_back(bit);
                         SHAREMIND_GCCPR54277_WORKAROUND m_state = BUFFER;
@@ -283,7 +283,7 @@ public: /* Methods: */
 
     template <typename ... Args>
     inline void writeFile(Args && ... args) {
-        const auto fit = new FileInputData{std::forward<Args>(args)...};
+        auto const fit = new FileInputData{std::forward<Args>(args)...};
         try {
             m_data.push_back(fit);
             m_state = FILE;
@@ -302,7 +302,7 @@ public: /* Methods: */
     }
 
     template <typename T, bool bigEndian = false>
-    inline void writeIntegral(const char * const input) {
+    inline void writeIntegral(char const * const input) {
         std::istringstream iss{std::string{input}};
         T integer;
         if ((iss >> integer).fail())
@@ -315,7 +315,7 @@ public: /* Methods: */
         assert(size > 0u);
         while (!m_data.empty()) {
             InputData * const i = m_data.front();
-            const size_t r = i->read(buf, size);
+            size_t const r = i->read(buf, size);
             assert(r <= size);
             if (r == size)
                 return;
@@ -342,7 +342,7 @@ public: /* Methods: */
     }
 
     inline std::string readString() {
-        const size_t size = readSwapUint64();
+        size_t const size = readSwapUint64();
         if (size == 0u)
             return {};
         std::string str;
@@ -360,21 +360,23 @@ public: /* Methods: */
                 // Peek:
                 try {
                     readData(buf, 1u);
-                } catch (const InputException &) {
+                } catch (InputException const &) {
                     break;
                 }
                 readData(&buf[1u], sizeof(uint64_t) - 1u);
                 uint64_t out;
                 ::memcpy(&out, buf, sizeof(uint64_t));
-                const size_t size = littleEndianToHost(out);
+                static_assert(std::numeric_limits<uint64_t>::max()
+                              <= std::numeric_limits<size_t>::max(), "");
+                size_t const size = littleEndianToHost(out);
                 argName.resize(size);
                 readData(&argName[0u], size);
             }
             if (args.find(argName) != args.end())
-                throw InputException();
+                throw InputException{};
             std::string pdName{readString()};
             std::string typeName{readString()};
-            const size_t size = readSize();
+            size_t const size = readSize();
             void * data = ::operator new(size);
             try {
                 readData(static_cast<char *>(data), size);
@@ -387,7 +389,7 @@ public: /* Methods: */
                 try {
                     data = nullptr;
                     #ifndef NDEBUG
-                    const auto r =
+                    auto const r =
                     #endif
                     #if defined(SHAREMIND_GCC_VERSION) \
                             && SHAREMIND_GCC_VERSION < 40800
@@ -408,7 +410,7 @@ public: /* Methods: */
         return args;
     }
 
-    void writeToFileDescriptor(const int fd, const char * const filename) {
+    void writeToFileDescriptor(int const fd, char const * const filename) {
         while (!m_data.empty()) {
             InputData * const i = m_data.front();
             i->writeToFileDescriptor(fd, filename);
@@ -424,8 +426,8 @@ private: /* Fields: */
 
 };
 
-int openOutFile(const char * const filename, const int openFlag) {
-    const int fd = ::open(filename,
+int openOutFile(char const * const filename, int const openFlag) {
+    int const fd = ::open(filename,
                           O_WRONLY | O_CREAT | openFlag,
                           S_IRUSR | S_IWUSR | S_IRGRP);
     if (fd == -1)
@@ -438,9 +440,9 @@ int openOutFile(const char * const filename, const int openFlag) {
 struct CommandLineArgs {
     bool justExit = false;
     bool haveStdin = false;
-    const char * configurationFilename = nullptr;
-    const char * bytecodeFilename = nullptr;
-    const char * outFilename = nullptr;
+    char const * configurationFilename = nullptr;
+    char const * bytecodeFilename = nullptr;
+    char const * outFilename = nullptr;
     int outOpenFlag = O_EXCL;
 };
 
@@ -506,15 +508,15 @@ inline void printUsage() {
          << endl << endl;
 }
 
-inline CommandLineArgs parseCommandLine(const int argc,
-                                        const char * const argv[])
+inline CommandLineArgs parseCommandLine(int const argc,
+                                        char const * const argv[])
 {
     assert(argc >= 1);
     programName = argv[0u];
     CommandLineArgs r;
     InputStream inputData;
     for (size_t i = 1u; i < static_cast<size_t>(argc); i++) {
-        const char * opt = argv[i];
+        char const * opt = argv[i];
         if (opt[0u] != '-') {
             if (r.bytecodeFilename)
                 throw UsageException{"Multiple bytecode FILENAME arguments "
@@ -523,7 +525,7 @@ inline CommandLineArgs parseCommandLine(const int argc,
             continue;
         }
 
-        const char * argument = nullptr;
+        char const * argument = nullptr;
         opt++;
         if (opt[0u] != '-') {
             if (opt[1u] != '\0')
@@ -639,8 +641,8 @@ parseCommandLine_cstr:
 
 parseCommandLine_xstr:
 
-        for (const char * str = argument; *str; str += 2u) {
-            const auto getVal = [=](const char s) {
+        for (char const * str = argument; *str; str += 2u) {
+            auto const getVal = [=](char const s) {
                 switch (s) {
                 case 'a' ... 'f': return (s - 'a') + 0xa;
                 case 'A' ... 'F': return (s - 'A') + 0xA;
@@ -660,7 +662,7 @@ parseCommandLine_xstr:
     parseCommandLine_ ## argname: \
         try { \
             inputData.writeIntegral<type ## _t, big>(argument); \
-        } catch (const WriteIntegralArgumentException &) { \
+        } catch (WriteIntegralArgumentException const &) { \
             throw UsageException{ \
                         "Invalid --" #argname "=VALUE argument given!", \
                         "Invalid --" #argname "=VALUE argument given: ", \
@@ -691,7 +693,7 @@ PROCESS_SINT(8, 64);
 parseCommandLine_str:
 
         {
-            const auto size = strlen(argument);
+            auto const size = strlen(argument);
             if (size > std::numeric_limits<uint64_t>::max())
                 throw InputStringTooBigException{};
             inputData.writeIntegral(static_cast<uint64_t>(size));
@@ -708,9 +710,9 @@ parseCommandLine_cfile:
 parseCommandLine_file:
 
         {
-            const int fd = FileInputData::open(argument);
+            int const fd = FileInputData::open(argument);
             struct ::stat st;
-            const auto ret = fstat(fd, &st);
+            auto const ret = fstat(fd, &st);
             if (ret != 0) {
                 assert(ret == -1);
                 NESTED_SYSTEM_ERROR(InputFileOpenException,
@@ -720,7 +722,7 @@ parseCommandLine_file:
             static_assert(std::numeric_limits<decltype(st.st_size)>::max()
                           <= std::numeric_limits<uint64_t>::max(),
                           "");
-            const uint64_t size =
+            uint64_t const size =
                     hostToLittleEndian(static_cast<uint64_t>(st.st_size));
             inputData.writeData(&size, sizeof(size));
             inputData.writeFile(fd, argument);
@@ -777,30 +779,30 @@ parseCommandLine_printArgs:
     return r;
 }
 
-inline void printException__(const std::exception & e,
-                             const size_t levelNow,
+inline void printException__(std::exception const & e,
+                             size_t const levelNow,
                              size_t & totalLevels) noexcept
 {
     try {
         std::rethrow_if_nested(e);
-    } catch (const std::exception & e2) {
+    } catch (std::exception const & e2) {
         printException__(e2, levelNow + 1u, ++totalLevels);
     }
     std::cerr << "Error " << (totalLevels - levelNow + 1u) << " of "
               << totalLevels << ": " << e.what() << std::endl;
 }
 
-inline void printException(const std::exception & e) noexcept {
+inline void printException(std::exception const & e) noexcept {
     size_t levels = 1u;
     printException__(e, 1u, levels);
 }
 
 FacilityModuleApi fmodapi;
-ModuleApi modapi{[](const char * const signature)
+ModuleApi modapi{[](char const * const signature)
                    { return fmodapi.findModuleFacility(signature); },
-                 [](const char * const signature)
+                 [](char const * const signature)
                    { return fmodapi.findPdFacility(signature); },
-                 [](const char * const signature)
+                 [](char const * const signature)
                    { return fmodapi.findPdpiFacility(signature); }};
 
 } // namespace sharemind {
@@ -814,14 +816,14 @@ int main(int argc, char * argv[]) {
             auto r = sigemptyset(&sa.sa_mask);
             if (r != 0) {
                 assert(r == -1);
-                NESTED_SYSTEM_ERROR2(SigEmptySetException());
+                NESTED_SYSTEM_ERROR2(SigEmptySetException{});
             }
             sa.sa_flags = 0;
-            for (const int s : {SIGPIPE, SIGXFSZ}) {
+            for (int const s : {SIGPIPE, SIGXFSZ}) {
                 r = sigaction(s, &sa, nullptr);
                 if (r != 0) {
                     assert(r == -1);
-                    NESTED_SYSTEM_ERROR2(SigActionException());
+                    NESTED_SYSTEM_ERROR2(SigActionException{});
                 }
             }
 
@@ -829,8 +831,8 @@ int main(int argc, char * argv[]) {
         }
 
         CommandLineArgs cmdLine{parseCommandLine(argc, argv)};
-        const Configuration conf(cmdLine.configurationFilename);
-        for (const auto & fm : conf.facilityModuleList()) {
+        Configuration const conf{cmdLine.configurationFilename};
+        for (auto const & fm : conf.facilityModuleList()) {
             FacilityModule * const fmodule = [&]() {
                 try {
                     return new FacilityModule{fmodapi,
@@ -852,7 +854,7 @@ int main(int argc, char * argv[]) {
                             fm.filename);
             }
         }
-        for (const auto & m : conf.moduleList()) {
+        for (auto const & m : conf.moduleList()) {
             Module * const module = [&]() {
                 try {
                     return new Module{modapi,
@@ -875,7 +877,7 @@ int main(int argc, char * argv[]) {
             }
         }
         SHAREMIND_SCOPE_EXIT(while (modapi.numPds() > 0u) delete modapi.pd(0u));
-        for (const auto & pd : conf.protectionDomainList()) {
+        for (auto const & pd : conf.protectionDomainList()) {
             Pdk * const pdk = modapi.findPdk(pd.kind.c_str());
             if (!pdk)
                 throw PdkNotFoundException{};
@@ -901,13 +903,13 @@ int main(int argc, char * argv[]) {
             }
         }
 
-        Vm vm{[](const char * name) -> SharemindSyscallWrapper {
-                  const auto it = staticSyscallWrappers.find(name);
+        Vm vm{[](char const * name) -> SharemindSyscallWrapper {
+                  auto const it = staticSyscallWrappers.find(name);
                   if (it != staticSyscallWrappers.end())
                       return it->second;
                   return modapi.syscallWrapper(name);
               },
-              [](const char * name) -> SharemindPd * {
+              [](char const * name) -> SharemindPd * {
                   Pd * const pd = modapi.findPd(name);
                   return pd ? pd->cPtr() : nullptr;
               }};
@@ -920,12 +922,12 @@ int main(int argc, char * argv[]) {
                                           cmdLine.bytecodeFilename);
         }
 
-        const int fd = [&cmdLine] {
+        int const fd = [&cmdLine] {
             if (!cmdLine.outFilename) {
                 assert(processResultsStream == STDOUT_FILENO);
                 return -1;
             }
-            const int fd = openOutFile(cmdLine.outFilename,
+            int const fd = openOutFile(cmdLine.outFilename,
                                        cmdLine.outOpenFlag);
             processResultsStream = fd;
             return fd;
@@ -946,10 +948,10 @@ int main(int argc, char * argv[]) {
             std::cerr << "Process returned status: " << process.returnValue()
                       << std::endl;
         }
-    } catch (const std::exception & e) {
+    } catch (std::exception const & e) {
         printException(e);
         return EXIT_FAILURE;
-    } catch (const GracefulException &) {
+    } catch (GracefulException const &) {
         return EXIT_SUCCESS;
     }
 

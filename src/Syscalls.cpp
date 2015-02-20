@@ -32,12 +32,12 @@
 
 namespace sharemind {
 
-inline void writeData(const int outFd, const char * buf, size_t size) {
+inline void writeData(int const outFd, char const * buf, size_t size) {
     if (size > 0u) {
         for (;;) {
-            const auto written = ::write(outFd, buf, size);
+            auto const written = ::write(outFd, buf, size);
             if (written > 0) {
-                const size_t uWritten = static_cast<size_t>(written);
+                size_t const uWritten = static_cast<size_t>(written);
                 assert(uWritten <= size);
                 size -= uWritten;
                 if (size == 0u)
@@ -46,22 +46,22 @@ inline void writeData(const int outFd, const char * buf, size_t size) {
             } else {
                 assert(written == -1);
                 if ((errno != EAGAIN) && (errno != EINTR))
-                    throw std::system_error(errno, std::system_category());
+                    throw std::system_error{errno, std::system_category()};
             }
         }
     };
 }
 
-inline void writeSwapUint64(const int outFd, uint64_t v) {
+inline void writeSwapUint64(int const outFd, uint64_t v) {
     v = hostToLittleEndian(v);
     char d[sizeof(v)];
     memcpy(d, &v, sizeof(v));
     writeData(outFd, d, sizeof(v));
 }
 
-inline void writeDataWithSize(const int outFd,
-                              const char * data,
-                              const size_t size)
+inline void writeDataWithSize(int const outFd,
+                              char const * data,
+                              size_t const size)
 {
     writeSwapUint64(outFd, size);
     writeData(outFd, data, size);
@@ -101,7 +101,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_argument,
         || !returnValue || num_args // Check for return value, and no arguments
         || (refs && refs[1u].pData) // Check for < 2 ref arguments
         || crs[0u].size == 0u
-        || static_cast<const char *>(crs[0u].pData)[crs[0u].size - 1u]!= '\0')
+        || static_cast<char const *>(crs[0u].pData)[crs[0u].size - 1u]!= '\0')
     {
         return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
     }
@@ -109,23 +109,23 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_argument,
     assert(c);
 
     try {
-        const std::string argumentName(static_cast<const char *>(crs[0u].pData),
-                                       crs[0u].size - 1u);
-        const auto a = processArguments.maybeAt(argumentName);
+        std::string const argumentName{static_cast<char const *>(crs[0u].pData),
+                                       crs[0u].size - 1u};
+        auto const a = processArguments.maybeAt(argumentName);
         if (!a)
             return SHAREMIND_MODULE_API_0x1_GENERAL_ERROR;
 
-        const size_t argSize = a->size();
+        size_t const argSize = a->size();
         returnValue->uint64[0u] = argSize;
         if (refs) {
             assert(refs[0u].size > 0u);
-            const size_t toCopy = std::min(refs[0u].size, argSize);
-            std::copy(static_cast<const char *>(a->data()),
-                      static_cast<const char *>(a->data()) + toCopy,
+            size_t const toCopy = std::min(refs[0u].size, argSize);
+            std::copy(static_cast<char const *>(a->data()),
+                      static_cast<char const *>(a->data()) + toCopy,
                       static_cast<char *>(refs[0u].pData));
         }
         return SHAREMIND_MODULE_API_0x1_OK;
-    } catch (const std::bad_alloc &) {
+    } catch (std::bad_alloc const &) {
         return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
     } catch (...) {
         return SHAREMIND_MODULE_API_0x1_SHAREMIND_ERROR;
@@ -145,7 +145,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_setResult,
                                  args, num_args, refs, crefs,
                                  returnValue, c)
 {
-    typedef const char * const CCP;
+    typedef char const * const CCP;
     if (// Check for four cref arguments:
         !crefs || (assert(crefs[0u].pData), !crefs[1u].pData)
             || !crefs[2u].pData || !crefs[3u].pData || crefs[4u].pData
@@ -162,8 +162,8 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_setResult,
         return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
     }
 
-    const uint64_t begin = args[0u].uint64[0u];
-    const uint64_t end = args[1u].uint64[0u];
+    uint64_t const begin = args[0u].uint64[0u];
+    uint64_t const end = args[1u].uint64[0u];
 
     if (begin > end || end > crefs[3u].size)
         return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
@@ -171,19 +171,19 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_setResult,
     assert(c);
     try {
         writeDataWithSize(processResultsStream,
-                          static_cast<const char *>(crefs[0u].pData),
+                          static_cast<char const *>(crefs[0u].pData),
                           crefs[0u].size - 1u);
         writeDataWithSize(processResultsStream,
-                          static_cast<const char *>(crefs[1u].pData),
+                          static_cast<char const *>(crefs[1u].pData),
                           crefs[1u].size - 1u);
         writeDataWithSize(processResultsStream,
-                          static_cast<const char *>(crefs[2u].pData),
+                          static_cast<char const *>(crefs[2u].pData),
                           crefs[2u].size - 1u);
         writeDataWithSize(processResultsStream,
-                          static_cast<const char *>(crefs[3u].pData) + begin,
+                          static_cast<char const *>(crefs[3u].pData) + begin,
                           end - begin);
         return SHAREMIND_MODULE_API_0x1_OK;
-    } catch (const std::bad_alloc &) {
+    } catch (std::bad_alloc const &) {
         return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
     } catch (...) {
         return SHAREMIND_MODULE_API_0x1_SHAREMIND_ERROR;
@@ -212,9 +212,9 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logString,
         std::string buffer;
         buffer.reserve(crefs[0u].size + 1u);
 
-        const char * sstart = static_cast<const char *>(crefs[0u].pData);
-        const char * scur = sstart;
-        const char * ssend = sstart + crefs[0u].size;
+        char const * sstart = static_cast<char const *>(crefs[0u].pData);
+        char const * scur = sstart;
+        char const * ssend = sstart + crefs[0u].size;
         size_t slen = 0u;
         while (scur != ssend) {
             switch (*scur) {
@@ -241,7 +241,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logString,
             std::cerr << buffer << std::endl;
         }
         return SHAREMIND_MODULE_API_0x1_OK;
-    } catch (const std::bad_alloc &) {
+    } catch (std::bad_alloc const &) {
         return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
     } catch (...) {
         return SHAREMIND_MODULE_API_0x1_SHAREMIND_ERROR;
@@ -252,7 +252,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logString,
 
 #define BINDING_INIT(f) { #f, { &(f), nullptr } }
 
-const std::map<std::string, const SharemindSyscallWrapper>
+std::map<std::string, SharemindSyscallWrapper const> const
     staticSyscallWrappers
 {
     BINDING_INIT(Process_argument),
