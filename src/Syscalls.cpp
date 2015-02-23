@@ -111,7 +111,8 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_argument,
     try {
         std::string const argumentName{static_cast<char const *>(crs[0u].pData),
                                        crs[0u].size - 1u};
-        auto const a = processArguments.maybeAt(argumentName);
+        IController::Value const * const a =
+                processArguments.maybeAt(argumentName);
         if (!a)
             return SHAREMIND_MODULE_API_0x1_GENERAL_ERROR;
 
