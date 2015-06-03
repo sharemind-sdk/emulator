@@ -82,6 +82,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logMicroseconds,
     (void) crefs;
     (void) returnValue;
     assert(c);
+    (void) c;
     std::cerr << "Global time is " << getUsTime() << " us."<< std::endl;
     return SHAREMIND_MODULE_API_0x1_OK;
 }
@@ -107,6 +108,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_argument,
     }
 
     assert(c);
+    (void) c;
 
     try {
         std::string const argumentName{static_cast<char const *>(crs[0u].pData),
@@ -170,6 +172,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_setResult,
         return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
 
     assert(c);
+    (void) c;
     try {
         writeDataWithSize(processResultsStream,
                           static_cast<char const *>(crefs[0u].pData),
@@ -205,6 +208,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logString,
     }
 
     assert(c);
+    (void) c;
 
     if (crefs[0u].size == std::numeric_limits<size_t>::max())
         return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
