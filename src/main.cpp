@@ -719,7 +719,9 @@ parseCommandLine_file:
                                     "Unable to fstat() given input file",
                                     argument);
             }
-            static_assert(std::numeric_limits<decltype(st.st_size)>::max()
+            using UnsignedOffT = std::make_unsigned<off_t>::type;
+            static_assert(static_cast<UnsignedOffT>(
+                              std::numeric_limits<off_t>::max())
                           <= std::numeric_limits<uint64_t>::max(),
                           "");
             uint64_t const size =
