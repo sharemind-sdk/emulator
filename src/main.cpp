@@ -295,7 +295,10 @@ public: /* Methods: */
 
     template <typename T, bool bigEndian = false>
     inline void writeIntegral(T value) {
-        value = bigEndian ? hostToBigEndian(value) : hostToLittleEndian(value);
+        using U = typename std::make_unsigned<T>::type;
+        value = bigEndian
+                ? hostToBigEndian(static_cast<U>(value))
+                : hostToLittleEndian(static_cast<U>(value));
         char data[sizeof(value)];
         ::memcpy(data, &value, sizeof(value));
         writeData(data, data + sizeof(value));
