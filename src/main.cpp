@@ -857,11 +857,10 @@ int main(int argc, char * argv[]) {
             }
         }
         for (auto const & m : conf.moduleList()) {
-            Module * const module = [&]() {
+            Module & module = [&]() -> Module & {
                 try {
-                    return new Module{modapi,
-                                      m.filename.c_str(),
-                                      m.configurationFile.c_str()};
+                    return modapi.loadModule(m.filename.c_str(),
+                                             m.configurationFile.c_str());
                 } catch (...) {
                     NESTED_THROW_CONCAT_EXCEPTION(
                                 ModuleLoadException,
@@ -870,7 +869,7 @@ int main(int argc, char * argv[]) {
                 }
             }();
             try {
-                module->init();
+                module.init();
             } catch (...) {
                 NESTED_THROW_CONCAT_EXCEPTION(
                             ModuleInitException,
