@@ -37,6 +37,7 @@
 #include <sharemind/Exception.h>
 #include <sharemind/libfmodapi/libfmodapicxx.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
+#include <sharemind/libprocessfacility.h>
 #include <sharemind/libvm/libvmcxx.h>
 #include <sharemind/ScopeExit.h>
 #include <signal.h>
@@ -937,6 +938,14 @@ int main(int argc, char * argv[]) {
 
         {
             Process process{program};
+            SharemindProcessFacility pf{
+                [](const SharemindProcessFacility *)
+                    { return static_cast<SharemindProcessId>(0); }
+            };
+            process.setInternal(&pf);
+            process.setPdpiFacility(
+                            "ProcessFacility",
+                            &pf);
             try {
                 process.run();
             } catch (...) {

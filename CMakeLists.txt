@@ -38,6 +38,7 @@ FIND_PACKAGE(SharemindCxxHeaders REQUIRED)
 FIND_PACKAGE(SharemindLibIController 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibfmodapiCxx 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibmodapiCxx 0.3.0 REQUIRED)
+FIND_PACKAGE(SharemindLibProcessFacility 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibvmCxx 0.5.0 REQUIRED)
 
 INCLUDE_DIRECTORIES(
@@ -46,6 +47,7 @@ INCLUDE_DIRECTORIES(
     ${SharemindLibIController_INCLUDE_DIRS}
     ${SharemindLibfmodapiCxx_INCLUDE_DIRS}
     ${SharemindLibmodapiCxx_INCLUDE_DIRS}
+    ${SharemindLibProcessFacility_INCLUDE_DIRS}
     ${SharemindLibvmCxx_INCLUDE_DIRS}
 )
 ADD_DEFINITIONS(
@@ -53,6 +55,7 @@ ADD_DEFINITIONS(
     ${SharemindLibIController_DEFINITIONS}
     ${SharemindLibfmodapiCxx_DEFINITIONS}
     ${SharemindLibmodapiCxx_DEFINITIONS}
+    ${SharemindLibProcessFacility_DEFINITIONS}
     ${SharemindLibvmCxx_DEFINITIONS}
     "-DSHAREMIND_EMULATOR_VERSION=\"${SHAREMIND_EMULATOR_VERSION}\""
 )
@@ -60,6 +63,7 @@ SET(Emulator_LIBRARIES
     ${SharemindLibfmodapiCxx_LIBRARIES}
     ${SharemindLibIController_LIBRARIES}
     ${SharemindLibmodapiCxx_LIBRARIES}
+    ${SharemindLibProcessFacility_LIBRARIES}
     ${SharemindLibvmCxx_LIBRARIES}
 )
 
