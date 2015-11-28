@@ -937,6 +937,7 @@ int main(int argc, char * argv[]) {
         SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));
 
         {
+            FacilityModulePis pis{fmodapi, static_cast<SharemindProcessId>(0)};
             Process process{program};
             SharemindProcessFacility pf{
                 [](const SharemindProcessFacility *)
