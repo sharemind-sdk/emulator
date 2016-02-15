@@ -659,7 +659,7 @@ parseCommandLine_xstr:
         }
         continue;
 
-#define PROCESS_INTARG__(argname,type,big) \
+#define PROCESS_INTARG_(argname,type,big) \
     parseCommandLine_ ## argname: \
         try { \
             inputData.writeIntegral<type ## _t, big>(argument); \
@@ -672,8 +672,8 @@ parseCommandLine_xstr:
         continue;
 
 #define PROCESS_INTARG(type) \
-    PROCESS_INTARG__(type, type, false) \
-    PROCESS_INTARG__(b ## type, type, true)
+    PROCESS_INTARG_(type, type, false) \
+    PROCESS_INTARG_(b ## type, type, true)
 PROCESS_INTARG(int16)
 PROCESS_INTARG(int32)
 PROCESS_INTARG(int64)
@@ -782,14 +782,14 @@ parseCommandLine_printArgs:
     return r;
 }
 
-inline void printException__(std::exception const & e,
+inline void printException_(std::exception const & e,
                              size_t const levelNow,
                              size_t & totalLevels) noexcept
 {
     try {
         std::rethrow_if_nested(e);
     } catch (std::exception const & e2) {
-        printException__(e2, levelNow + 1u, ++totalLevels);
+        printException_(e2, levelNow + 1u, ++totalLevels);
     }
     std::cerr << "Error " << (totalLevels - levelNow + 1u) << " of "
               << totalLevels << ": " << e.what() << std::endl;
@@ -797,7 +797,7 @@ inline void printException__(std::exception const & e,
 
 inline void printException(std::exception const & e) noexcept {
     size_t levels = 1u;
-    printException__(e, 1u, levels);
+    printException_(e, 1u, levels);
 }
 
 FacilityModuleApi fmodapi;
