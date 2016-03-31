@@ -940,8 +940,9 @@ int main(int argc, char * argv[]) {
             FacilityModulePis pis{fmodapi, static_cast<SharemindProcessId>(0)};
             Process process{program};
             SharemindProcessFacility pf{
-                [](const SharemindProcessFacility *)
-                    { return static_cast<SharemindProcessId>(0); }
+                [](const SharemindProcessFacility *) noexcept
+                    { return static_cast<SharemindProcessId>(0); },
+                [](const SharemindProcessFacility *) noexcept { return "0"; }
             };
             process.setInternal(&pf);
             process.setPdpiFacility(
