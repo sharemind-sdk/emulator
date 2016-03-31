@@ -808,6 +808,8 @@ ModuleApi modapi{[](char const * const signature)
                  [](char const * const signature)
                    { return fmodapi.findPdpiFacility(signature); }};
 
+SharemindProcessId const localPid = 0u;
+
 } // namespace sharemind {
 
 int main(int argc, char * argv[]) {
@@ -941,8 +943,12 @@ int main(int argc, char * argv[]) {
             Process process{program};
             SharemindProcessFacility pf{
                 [](const SharemindProcessFacility *) noexcept
-                    { return static_cast<SharemindProcessId>(0); },
-                [](const SharemindProcessFacility *) noexcept { return "0"; }
+                        { return localPid; },
+                [](const SharemindProcessFacility *) noexcept { return "0"; },
+                [](const SharemindProcessFacility *) noexcept -> void const *
+                        { return &localPid; },
+                [](const SharemindProcessFacility *) noexcept
+                        { return sizeof(localPid); }
             };
             process.setInternal(&pf);
             process.setPdpiFacility(
