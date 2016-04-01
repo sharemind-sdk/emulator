@@ -951,9 +951,8 @@ int main(int argc, char * argv[]) {
                         { return sizeof(localPid); }
             };
             process.setInternal(&pf);
-            process.setPdpiFacility(
-                            "ProcessFacility",
-                            &pf);
+            process.setProcessFacility("ProcessFacility", &pf);
+            process.setPdpiFacility("ProcessFacility", &pf);
             try {
                 process.run();
             } catch (...) {
