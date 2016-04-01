@@ -968,8 +968,25 @@ int main(int argc, char * argv[]) {
         SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));
 
         {
-            FacilityModulePis pis{fmodapi, localPid};
             Process process{program};
+            FacilityModulePis::Context ctx{
+                &process,
+                [](FacilityModulePis::Context * const ctx,
+                   char const * const name,
+                   void * const facility)
+                {
+                    assert(ctx);
+                    assert(ctx->context);
+                    auto & p = *static_cast<Process *>(ctx->context);
+                    try {
+                        p.setFacility(name, facility);
+                        return true;
+                    } catch (...) {
+                        return false; /// \todo store exception?
+                    }
+                }
+            };
+            FacilityModulePis pis(fmodapi, ctx);
             process.setInternal(&vmProcessFacility);
             process.setPdpiFacility("ProcessFacility", &vmProcessFacility);
             try {
