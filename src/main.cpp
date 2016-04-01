@@ -810,6 +810,44 @@ ModuleApi modapi{[](char const * const signature)
 
 SharemindProcessId const localPid = 0u;
 
+SharemindSyscallWrapper vmFindSyscall(Vm::Context * const,
+                                      char const * const name) noexcept
+{
+    auto const it = staticSyscallWrappers.find(name);
+    if (it != staticSyscallWrappers.end())
+        return it->second;
+    return modapi.syscallWrapper(name);
+}
+
+SharemindPd * vmFindPd(Vm::Context * const, char const * const name) noexcept {
+    Pd * const pd = modapi.findPd(name);
+    return pd ? pd->cPtr() : nullptr;
+}
+
+SharemindProcessFacility vmProcessFacility{
+    [](const SharemindProcessFacility *) noexcept
+            { return localPid; },
+    [](const SharemindProcessFacility *) noexcept { return "0"; },
+    [](const SharemindProcessFacility *) noexcept -> void const *
+            { return &localPid; },
+    [](const SharemindProcessFacility *) noexcept
+            { return sizeof(localPid); }
+};
+
+void * vmFindProcessFacility(Vm::Context * const,
+                             char const * const name) noexcept
+{
+    return std::strcmp(name, "ProcessFacility") == 0
+            ? &vmProcessFacility
+            : nullptr;
+}
+
+Vm::Context vmContext{nullptr,
+                      nullptr,
+                      &vmFindSyscall,
+                      &vmFindPd,
+                      &vmFindProcessFacility};
+
 } // namespace sharemind {
 
 int main(int argc, char * argv[]) {
@@ -907,16 +945,7 @@ int main(int argc, char * argv[]) {
             }
         }
 
-        Vm vm{[](char const * name) -> SharemindSyscallWrapper {
-                  auto const it = staticSyscallWrappers.find(name);
-                  if (it != staticSyscallWrappers.end())
-                      return it->second;
-                  return modapi.syscallWrapper(name);
-              },
-              [](char const * name) -> SharemindPd * {
-                  Pd * const pd = modapi.findPd(name);
-                  return pd ? pd->cPtr() : nullptr;
-              }};
+        Vm vm{vmContext};
         Program program{vm};
         try {
             program.loadFromFile(cmdLine.bytecodeFilename);
@@ -941,18 +970,8 @@ int main(int argc, char * argv[]) {
         {
             FacilityModulePis pis{fmodapi, localPid};
             Process process{program};
-            SharemindProcessFacility pf{
-                [](const SharemindProcessFacility *) noexcept
-                        { return localPid; },
-                [](const SharemindProcessFacility *) noexcept { return "0"; },
-                [](const SharemindProcessFacility *) noexcept -> void const *
-                        { return &localPid; },
-                [](const SharemindProcessFacility *) noexcept
-                        { return sizeof(localPid); }
-            };
-            process.setInternal(&pf);
-            process.setProcessFacility("ProcessFacility", &pf);
-            process.setPdpiFacility("ProcessFacility", &pf);
+            process.setInternal(&vmProcessFacility);
+            process.setPdpiFacility("ProcessFacility", &vmProcessFacility);
             try {
                 process.run();
             } catch (...) {
