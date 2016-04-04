@@ -826,8 +826,6 @@ SharemindPd * vmFindPd(Vm::Context * const, char const * const name) noexcept {
 }
 
 SharemindProcessFacility vmProcessFacility{
-    [](const SharemindProcessFacility *) noexcept
-            { return localPid; },
     [](const SharemindProcessFacility *) noexcept { return "0"; },
     [](const SharemindProcessFacility *) noexcept -> void const *
             { return &localPid; },
