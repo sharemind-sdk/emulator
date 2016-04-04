@@ -28,6 +28,7 @@
 #include <iterator>
 #include <iostream>
 #include <iosfwd>
+#include <limits>
 #include <list>
 #include <memory>
 #include <sharemind/compiler-support/GccVersion.h>
@@ -831,7 +832,16 @@ SharemindProcessFacility vmProcessFacility{
     [](const SharemindProcessFacility *) noexcept -> void const *
             { return &localPid; },
     [](const SharemindProcessFacility *) noexcept
-            { return sizeof(localPid); }
+            { return sizeof(localPid); },
+    [](const SharemindProcessFacility *) noexcept -> void const *
+            { return &localPid; },
+    [](const SharemindProcessFacility *) noexcept -> SharemindGlobalIdSizeType
+    {
+        static_assert(sizeof(localPid)
+                      <= std::numeric_limits<SharemindGlobalIdSizeType>::max(),
+                      "");
+        return sizeof(localPid);
+    }
 };
 
 void * vmFindProcessFacility(Vm::Context * const,
