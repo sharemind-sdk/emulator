@@ -809,7 +809,7 @@ ModuleApi modapi{[](char const * const signature)
                  [](char const * const signature)
                    { return fmodapi.findPdpiFacility(signature); }};
 
-SharemindProcessId const localPid = 0u;
+uint64_t const localPid = 0u;
 
 SharemindSyscallWrapper vmFindSyscall(Vm::Context * const,
                                       char const * const name) noexcept
