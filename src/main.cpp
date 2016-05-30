@@ -34,8 +34,10 @@
 #include <sharemind/compiler-support/GccVersion.h>
 #include <sharemind/compiler-support/GccPR54277.h>
 #include <sharemind/Concat.h>
+#include <sharemind/DebugOnly.h>
 #include <sharemind/EndianMacros.h>
 #include <sharemind/Exception.h>
+#include <sharemind/GlobalDeleter.h>
 #include <sharemind/libfmodapi/libfmodapicxx.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
 #include <sharemind/libprocessfacility.h>
@@ -379,35 +381,31 @@ public: /* Methods: */
             std::string pdName{readString()};
             std::string typeName{readString()};
             size_t const size = readSize();
-            void * data = ::operator new(size);
-            try {
-                readData(static_cast<char *>(data), size);
-                auto * const value = new sharemind::IController::Value{
-                        std::move(pdName),
-                        std::move(typeName),
-                        data,
-                        size,
-                        sharemind::IController::Value::TAKE_OWNERSHIP};
+            auto data = [size]() {
+                void * const ptr = ::operator new(size);
                 try {
-                    data = nullptr;
-                    #ifndef NDEBUG
-                    auto const r =
-                    #endif
-                    #if defined(SHAREMIND_GCC_VERSION) \
-                            && SHAREMIND_GCC_VERSION < 40800
-                            args.insert(std::move(argName), value);
-                    #else
-                            args.emplace(std::move(argName), value);
-                    #endif
-                    assert(r.second);
+                    return std::shared_ptr<void>(ptr, GlobalDeleter());
                 } catch (...) {
-                    delete value;
+                    ::operator delete(ptr);
                     throw;
                 }
-            } catch (...) {
-                ::operator delete(data);
-                throw;
-            }
+            }();
+            readData(static_cast<char *>(data.get()), size);
+            auto value = std::make_shared<sharemind::IController::Value>(
+                            std::move(pdName),
+                            std::move(typeName),
+                            data,
+                            size);
+            SHAREMIND_DEBUG_ONLY(auto const r =)
+            #if defined(SHAREMIND_GCC_VERSION) && SHAREMIND_GCC_VERSION < 40800
+                    args.insert(
+                        IController::ValueMap::value_type(
+                            std::move(argName),
+                            std::move(value)));
+            #else
+                    args.emplace(std::move(argName), value);
+            #endif
+            assert(r.second);
         }
         return args;
     }

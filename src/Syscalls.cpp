@@ -113,8 +113,8 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_argument,
     try {
         std::string const argumentName{static_cast<char const *>(crs[0u].pData),
                                        crs[0u].size - 1u};
-        IController::Value const * const a =
-                processArguments.maybeAt(argumentName);
+        auto const it = processArguments.find(argumentName);
+        IController::Value const * const a = it->second.get();
         if (!a)
             return SHAREMIND_MODULE_API_0x1_GENERAL_ERROR;
 
@@ -123,8 +123,8 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_argument,
         if (refs) {
             assert(refs[0u].size > 0u);
             size_t const toCopy = std::min(refs[0u].size, argSize);
-            std::copy(static_cast<char const *>(a->data()),
-                      static_cast<char const *>(a->data()) + toCopy,
+            std::copy(static_cast<char const *>(a->data().get()),
+                      static_cast<char const *>(a->data().get()) + toCopy,
                       static_cast<char *>(refs[0u].pData));
         }
         return SHAREMIND_MODULE_API_0x1_OK;
