@@ -131,7 +131,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_argument,
     } catch (std::bad_alloc const &) {
         return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
     } catch (...) {
-        return SHAREMIND_MODULE_API_0x1_SHAREMIND_ERROR;
+        return SHAREMIND_MODULE_API_0x1_MODULE_ERROR;
     }
 }
 
@@ -190,7 +190,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_setResult,
     } catch (std::bad_alloc const &) {
         return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
     } catch (...) {
-        return SHAREMIND_MODULE_API_0x1_SHAREMIND_ERROR;
+        return SHAREMIND_MODULE_API_0x1_MODULE_ERROR;
     }
 }
 
@@ -249,7 +249,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logString,
     } catch (std::bad_alloc const &) {
         return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
     } catch (...) {
-        return SHAREMIND_MODULE_API_0x1_SHAREMIND_ERROR;
+        return SHAREMIND_MODULE_API_0x1_MODULE_ERROR;
     }
 }
 
