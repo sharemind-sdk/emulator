@@ -1002,7 +1002,6 @@ int main(int argc, char * argv[]) {
                           << ", block 0x"
                           << std::hex << process.currentIp() << std::dec
                           << '.' << std::endl;
-                std::cerr << process.currentIp() << std::endl;
                 throw;
             }
 
