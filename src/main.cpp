@@ -999,8 +999,10 @@ int main(int argc, char * argv[]) {
                 process.run();
             } catch (...) {
                 std::cerr << "At section " << process.currentCodeSection()
-                          << ", block " << process.currentIp() << '.'
-                          << std::endl;
+                          << ", block 0x"
+                          << std::hex << process.currentIp() << std::dec
+                          << '.' << std::endl;
+                std::cerr << process.currentIp() << std::endl;
                 throw;
             }
 
