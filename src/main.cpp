@@ -61,7 +61,7 @@
 
 namespace sharemind {
 
-constexpr size_t const buf8k_size = 8192u;
+constexpr std::size_t buf8k_size = 8192u;
 char buf8k[buf8k_size];
 
 SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, UsageException);
