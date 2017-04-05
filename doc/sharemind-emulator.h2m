@@ -12,19 +12,23 @@ stream follow the syntax of the ARGUMENT STREAM PROTOCOL detailed below.
 To run a bytecode process without any arguments and discard the output, one may
 use:
 
-    Emulator --conf=/path/to/emulator.conf /path/to/bytecode \\
-             --outFile=/dev/null --forceOutFile
+    sharemind-emulator --conf=/path/to/sharemind-emulator.conf \\
+                       /path/to/bytecode \\
+                       --outFile=/dev/null --forceOutFile
 
 To pass an argument named "arg1" of protection domain "pd_a3p" and type "uint64"
 with a value of 42 to the emulator, one may use
 
-    Emulator --conf=/path/to/emulator.conf /path/to/bytecode \\
-             --str=arg1 --str=pd_a3p --str=uint64 --size=8 --uint64=42
+    sharemind-emulator --conf=/path/to/sharemind-emulator.conf \\
+                       /path/to/bytecode \\
+                       --str=arg1 --str=pd_a3p --str=uint64 --size=8 \\
+                       --uint64=42
 
 To pass the contents of a file as a public string argument, one may use:
 
-    Emulator --conf=/path/to/emulator.conf /path/to/bytecode \\
-             --str=arg1 --str= --str=string --file=/path/to/file
+    sharemind-emulator --conf=/path/to/sharemind-emulator.conf \\
+                       /path/to/bytecode \\
+                       --str=arg1 --str= --str=string --file=/path/to/file
 
 [Argument stream protocol]
 The argument stream is a unidirectional binary stream for the delivery of

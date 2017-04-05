@@ -82,10 +82,10 @@ FILE(GLOB_RECURSE SHAREMIND_EMULATOR_DOCS
 ADD_CUSTOM_TARGET("include_Emulator_docs_in_IDE"
                   SOURCES ${SHAREMIND_EMULATOR_DOCS})
 
-ADD_EXECUTABLE(Emulator ${SHAREMIND_EMULATOR_SOURCES})
-TARGET_LINK_LIBRARIES(Emulator ${Emulator_LIBRARIES})
+ADD_EXECUTABLE(sharemind-emulator ${SHAREMIND_EMULATOR_SOURCES})
+TARGET_LINK_LIBRARIES(sharemind-emulator ${Emulator_LIBRARIES})
 
-INSTALL(TARGETS Emulator RUNTIME DESTINATION "bin")
+INSTALL(TARGETS sharemind-emulator RUNTIME DESTINATION "bin")
 
 FUNCTION(GetEmulatorLdLibraryPath out)
     SET(L "")
@@ -110,16 +110,16 @@ ENDFUNCTION()
 FUNCTION(GenerateManPage)
     SET(V "${SHAREMIND_EMULATOR_VERSION}")
     GetEmulatorLdLibraryPath(L)
-    ADD_CUSTOM_COMMAND(TARGET Emulator POST_BUILD
+    ADD_CUSTOM_COMMAND(TARGET sharemind-emulator POST_BUILD
             COMMAND env "LD_LIBRARY_PATH=${L}" "LC_ALL=POSIX" ${HELP2MAN}
-                    "--include=${CMAKE_CURRENT_SOURCE_DIR}/doc/Emulator.h2m"
-                    "--output=${CMAKE_CURRENT_BINARY_DIR}/Emulator.1"
+                    "--include=${CMAKE_CURRENT_SOURCE_DIR}/doc/sharemind-emulator.h2m"
+                    "--output=${CMAKE_CURRENT_BINARY_DIR}/sharemind-emulator.1"
                     "--no-discard-stderr"
                     "--no-info"
-                    "--name=manual page for Sharemind Emulator ${V}"
-                    ${CMAKE_CURRENT_BINARY_DIR}/Emulator
-            COMMENT "Generating manual page for Emulator")
-    INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/Emulator.1"
+                    "--name=manual page for sharemind-emulator ${V}"
+                    ${CMAKE_CURRENT_BINARY_DIR}/sharemind-emulator
+            COMMENT "Generating manual page for sharemind-emulator")
+    INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/sharemind-emulator.1"
             DESTINATION "share/man/man1")
 ENDFUNCTION()
 

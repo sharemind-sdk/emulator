@@ -623,7 +623,7 @@ parseCommandLine_help:
 
 parseCommandLine_version:
 
-        std::cerr << "Emulator " SHAREMIND_EMULATOR_VERSION << std::endl;
+        std::cerr << argv[0u] << " " SHAREMIND_EMULATOR_VERSION << std::endl;
         throw GracefulException{};
 
 parseCommandLine_stdin:
