@@ -25,6 +25,7 @@
 #include <iostream>
 #include <sharemind/EndianMacros.h>
 #include <sharemind/MicrosecondTime.h>
+#include <sharemind/Random/CryptographicRandom.h>
 #include <system_error>
 #include <unistd.h>
 #include "Syscalls.h"
@@ -68,9 +69,61 @@ inline void writeDataWithSize(int const outFd,
 }
 
 IController::ValueMap processArguments;
-int processResultsStream = STDOUT_FILENO;
+int processResultsStream = STDOUT_FILENO;/* Mandatory ref parameter: output buffer */
+template <void (*F)(void * buf, std::size_t bufSize) noexcept>
+SHAREMIND_MODULE_API_0x1_SYSCALL(blockingRandomize_,
+                                 args, num_args, refs, crs,
+                                 returnValue, c)
+{
+    (void) c;
+    (void) args;
+
+    if (crs // Check for 0 cref arguments
+        || returnValue || num_args // Check for return value, and no arguments
+        || !refs || refs[1u].pData) // Check for 1 ref arguments
+        return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
+
+    (*F)(refs[0u].pData, refs[0u].size);
+    return SHAREMIND_MODULE_API_0x1_OK;
+}
+
+/* Mandatory ref parameter: output buffer
+   Return value: Number of bytes of randomness written to buffer. */
+template <std::size_t (*F)(void * buf, std::size_t bufSize) noexcept>
+SHAREMIND_MODULE_API_0x1_SYSCALL(nonblockingRandomize_,
+                                 args, num_args, refs, crs,
+                                 returnValue, c)
+{
+    (void) c;
+    (void) args;
+
+    if (crs // Check for 0 cref arguments
+        || !returnValue || num_args // Check for return value, and no arguments
+        || !refs || refs[1u].pData) // Check for 1 ref arguments
+        return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
+
+    auto const r((*F)(refs[0u].pData, refs[0u].size));
+    assert(r <= refs[0u].size);
+    static_assert(std::numeric_limits<decltype(r)>::max()
+                  <= std::numeric_limits<std::uint64_t>::max(), "");
+    returnValue->uint64[0u] = r;
+    return SHAREMIND_MODULE_API_0x1_OK;
+}
 
 extern "C" {
+
+#define PASS_SYSCALL(name, to) \
+    SHAREMIND_MODULE_API_0x1_SYSCALL(name, args, num_args, refs, crefs, ret, c)\
+    { return (to)(args, num_args, refs, crefs, ret, c); }
+
+PASS_SYSCALL(blockingRandomize,
+             blockingRandomize_<sharemind::cryptographicRandom>);
+PASS_SYSCALL(blockingURandomize,
+             blockingRandomize_<sharemind::cryptographicURandom>);
+PASS_SYSCALL(nonblockingRandomize,
+             nonblockingRandomize_<sharemind::cryptographicRandomNonblocking>);
+PASS_SYSCALL(nonblockingURandomize,
+             nonblockingRandomize_<sharemind::cryptographicURandomNonblocking>);
 
 SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logMicroseconds,
                                  args, num_args, refs, crefs,
@@ -260,6 +313,10 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logString,
 std::map<std::string, SharemindSyscallWrapper const> const
     staticSyscallWrappers
 {
+    BINDING_INIT(blockingRandomize),
+    BINDING_INIT(blockingURandomize),
+    BINDING_INIT(nonblockingRandomize),
+    BINDING_INIT(nonblockingURandomize),
     BINDING_INIT(Process_argument),
     BINDING_INIT(Process_setResult),
     BINDING_INIT(Process_logString),
