@@ -69,7 +69,9 @@ inline void writeDataWithSize(int const outFd,
 }
 
 IController::ValueMap processArguments;
-int processResultsStream = STDOUT_FILENO;/* Mandatory ref parameter: output buffer */
+int processResultsStream = STDOUT_FILENO;
+
+/* Mandatory ref parameter: output buffer */
 template <void (*F)(void * buf, std::size_t bufSize) noexcept>
 SHAREMIND_MODULE_API_0x1_SYSCALL(blockingRandomize_,
                                  args, num_args, refs, crs,
