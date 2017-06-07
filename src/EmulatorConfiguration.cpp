@@ -42,11 +42,8 @@ EmulatorConfiguration::EmulatorConfiguration(
 { init(); }
 
 std::vector<std::string> const & EmulatorConfiguration::defaultTryPaths() {
-    static std::vector<std::string> tryPaths([]() {
-        std::vector<std::string> r(getXdgConfigPaths("/sharemind/emulator.conf"));
-        r.emplace_back("/etc/sharemind/emulator.conf");
-        return r;
-    }());
+    static std::vector<std::string> const tryPaths(
+                Configuration::defaultSharemindToolTryPaths("emulator"));
     return tryPaths;
 }
 
