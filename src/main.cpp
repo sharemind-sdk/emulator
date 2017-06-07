@@ -45,6 +45,7 @@
 #include <sharemind/ScopeExit.h>
 #include <signal.h>
 #include <sstream>
+#include <string>
 #include <sys/stat.h>
 #include <system_error>
 #include <type_traits>
