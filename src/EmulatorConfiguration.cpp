@@ -17,39 +17,54 @@
  * For further information, please contact us at sharemind@cyber.ee.
  */
 
-#include "Configuration.h"
+#include "EmulatorConfiguration.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/xpressive/xpressive_static.hpp>
-#include <sharemind/ConfigurationInterpolation.h>
+#include <sharemind/XdgBaseDirectory.h>
 
 
 namespace sharemind {
 
-Configuration::Configuration(std::string const & filename) {
+EmulatorConfiguration::EmulatorConfiguration()
+    : Configuration(defaultTryPaths())
+{ init(); }
+
+EmulatorConfiguration::EmulatorConfiguration(std::string const & filename)
+    : Configuration(filename)
+{ init(); }
+
+EmulatorConfiguration::EmulatorConfiguration(
+        std::vector<std::string> const & tryPaths)
+    : Configuration(tryPaths)
+{ init(); }
+
+std::vector<std::string> const & EmulatorConfiguration::defaultTryPaths() {
+    static std::vector<std::string> tryPaths([]() {
+        std::vector<std::string> r(getXdgConfigPaths("/sharemind/emulator.conf"));
+        r.emplace_back("/etc/sharemind/emulator.conf");
+        return r;
+    }());
+    return tryPaths;
+}
+
+void EmulatorConfiguration::init() {
     try {
-        boost::property_tree::ptree config;
-        boost::property_tree::read_ini(filename, config);
-
-        ConfigurationInterpolation interpolate;
-        interpolate.addVar("CurrentFileDirectory",
-                           boost::filesystem::canonical(filename).parent_path().string());
-
         // Load module and protection domain lists:
-        for (boost::property_tree::ptree::value_type const & v : config) {
-            std::string const & section = v.first;
+        for (auto const & v : *this) {
+            auto const section(v.key());
             if (section.find("FacilityModule") == 0u) {
                 m_facilityModuleList.emplace_back(
                         FacilityModuleEntry{
-                            v.second.get<std::string>("File"),
-                            v.second.get<std::string>("Configuration", "")});
+                            v.get<std::string>("File"),
+                            v.get<std::string>("Configuration", "")});
             } else if (section.find("Module") == 0u) {
                 m_moduleList.emplace_back(
                         ModuleEntry{
-                            v.second.get<std::string>("File"),
-                            interpolate(v.second.get<std::string>("Configuration", ""))});
+                            v.get<std::string>("File"),
+                            v.get<std::string>("Configuration", "")});
             } else if (section.find("ProtectionDomain") == 0u) {
                 ProtectionDomainEntry newProtectionDomain;
                 // check if new MinerNode is unique
@@ -58,15 +73,15 @@ Configuration::Configuration(std::string const & filename) {
                         throw DuplicatePdNameException{};
 
                 // Now we have found a unique ProtectionDomainX section.
-                newProtectionDomain.name = v.second.get<std::string>("Name");
-                newProtectionDomain.kind = v.second.get<std::string>("Kind");
+                newProtectionDomain.name = v.get<std::string>("Name");
+                newProtectionDomain.kind = v.get<std::string>("Kind");
                 newProtectionDomain.configurationFile =
-                    interpolate(v.second.get<std::string>("Configuration"));
+                        v.get<std::string>("Configuration");
                 m_protectionDomainList.emplace_back(
                             std::move(newProtectionDomain));
             }
         }
-    } catch (boost::property_tree::ptree_error const & error) {
+    } catch (...) {
         std::throw_with_nested(ParseException{});
     }
 }

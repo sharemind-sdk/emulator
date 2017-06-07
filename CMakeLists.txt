@@ -35,6 +35,7 @@ ADD_COMPILE_OPTIONS(
 FIND_PROGRAM(HELP2MAN help2man)
 FIND_PACKAGE(Boost 1.50 COMPONENTS system filesystem REQUIRED)
 FIND_PACKAGE(SharemindCxxHeaders REQUIRED)
+FIND_PACKAGE(SharemindLibConfiguration REQUIRED)
 FIND_PACKAGE(SharemindLibIController 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibfmodapiCxx 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibmodapiCxx 0.3.0 REQUIRED)
@@ -45,6 +46,7 @@ FIND_PACKAGE(SharemindLibvmCxx 0.5.0 REQUIRED)
 INCLUDE_DIRECTORIES(
     ${Boost_INCLUDE_DIRS}
     ${SharemindCxxHeaders_INCLUDE_DIRS}
+    ${SharemindLibConfiguration_INCLUDE_DIRS}
     ${SharemindLibIController_INCLUDE_DIRS}
     ${SharemindLibfmodapiCxx_INCLUDE_DIRS}
     ${SharemindLibmodapiCxx_INCLUDE_DIRS}
@@ -54,6 +56,7 @@ INCLUDE_DIRECTORIES(
 )
 ADD_DEFINITIONS(
     ${SharemindCxxHeaders_DEFINITIONS}
+    ${SharemindLibConfiguration_DEFINITIONS}
     ${SharemindLibIController_DEFINITIONS}
     ${SharemindLibfmodapiCxx_DEFINITIONS}
     ${SharemindLibmodapiCxx_DEFINITIONS}
@@ -64,6 +67,7 @@ ADD_DEFINITIONS(
 )
 SET(Emulator_LIBRARIES
     ${Boost_LIBRARIES}
+    ${SharemindLibConfiguration_LIBRARIES}
     ${SharemindLibfmodapiCxx_LIBRARIES}
     ${SharemindLibIController_LIBRARIES}
     ${SharemindLibmodapiCxx_LIBRARIES}

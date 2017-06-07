@@ -17,10 +17,11 @@
  * For further information, please contact us at sharemind@cyber.ee.
  */
 
-#ifndef SHAREMIND_EMULATOR_CONFIGURATION_H
-#define SHAREMIND_EMULATOR_CONFIGURATION_H
+#ifndef SHAREMIND_EMULATOR_EMULATORCONFIGURATION_H
+#define SHAREMIND_EMULATOR_EMULATORCONFIGURATION_H
 
 #include <exception>
+#include <sharemind/Configuration.h>
 #include <sharemind/Exception.h>
 #include <string>
 #include <utility>
@@ -30,7 +31,7 @@
 namespace sharemind {
 
 /** \brief Parses and stores the configuration for a miner from a file. */
-class Configuration {
+class EmulatorConfiguration: public Configuration {
 
 public: /* Types: */
 
@@ -62,10 +63,27 @@ public: /* Types: */
 public: /* Methods: */
 
     /**
-     * \brief Reads the miner configuration from given section of the given file.
-     * \throws Exception on parse or configuration error.
+     * \brief Attempts to the miner configuration from a list of default paths
+     *        from defaultTryPaths().
      */
-    Configuration(std::string const & filename);
+    EmulatorConfiguration();
+
+    /**
+     * \brief Attempts to load the miner configuration from the given file.
+     * \param[in] filename The filename to load the configuration from.
+     */
+    EmulatorConfiguration(std::string const & filename);
+
+    /**
+     * \brief Attempts to the miner configuration from the given list of paths.
+     * \param[in] tryPaths The paths to try to load the configuration file from.
+     */
+    EmulatorConfiguration(std::vector<std::string> const & tryPaths);
+
+    /** \returns a vector of try paths consisting of the XDG configuration paths
+                 suffixed with /sharemind/emulator.conf, and the path
+                 /etc/sharemind/emulator.conf. */
+    static std::vector<std::string> const & defaultTryPaths();
 
     inline std::vector<FacilityModuleEntry> const & facilityModuleList()
             const noexcept
@@ -78,6 +96,9 @@ public: /* Methods: */
             const noexcept
     { return m_protectionDomainList; }
 
+private:  /* Methods: */
+
+    void init();
 
 private: /* Fields: */
 
@@ -90,8 +111,8 @@ private: /* Fields: */
     /** The protection domain list: */
     std::vector<ProtectionDomainEntry> m_protectionDomainList;
 
-}; /* class Configuration { */
+}; /* class EmulatorConfiguration { */
 
 } /* namespace sharemind { */
 
-#endif /* SHAREMIND_EMULATOR_CONFIGURATION_H */
+#endif /* SHAREMIND_EMULATOR_EMULATORCONFIGURATION_H */

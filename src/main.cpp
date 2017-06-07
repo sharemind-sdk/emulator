@@ -42,6 +42,7 @@
 #include <sharemind/libmodapi/libmodapicxx.h>
 #include <sharemind/libprocessfacility.h>
 #include <sharemind/libvm/libvmcxx.h>
+#include <sharemind/MakeUnique.h>
 #include <sharemind/ScopeExit.h>
 #include <signal.h>
 #include <sstream>
@@ -52,7 +53,7 @@
 #include <unistd.h>
 #include <utility>
 #include <vector>
-#include "Configuration.h"
+#include "EmulatorConfiguration.h"
 #include "Syscalls.h"
 
 
@@ -881,8 +882,12 @@ int main(int argc, char * argv[]) {
         }
 
         CommandLineArgs cmdLine{parseCommandLine(argc, argv)};
-        Configuration const conf{cmdLine.configurationFilename};
-        for (auto const & fm : conf.facilityModuleList()) {
+        std::shared_ptr<EmulatorConfiguration const> conf(
+                    cmdLine.configurationFilename
+                    ? makeUnique<EmulatorConfiguration>(
+                          cmdLine.configurationFilename)
+                    : makeUnique<EmulatorConfiguration>());
+        for (auto const & fm : conf->facilityModuleList()) {
             FacilityModule * const fmodule = [&]() {
                 try {
                     return new FacilityModule{fmodapi,
@@ -904,7 +909,7 @@ int main(int argc, char * argv[]) {
                             fm.filename);
             }
         }
-        for (auto const & m : conf.moduleList()) {
+        for (auto const & m : conf->moduleList()) {
             Module & module = [&]() -> Module & {
                 try {
                     return modapi.loadModule(m.filename.c_str(),
@@ -926,7 +931,7 @@ int main(int argc, char * argv[]) {
             }
         }
         SHAREMIND_SCOPE_EXIT(while (modapi.numPds() > 0u) delete modapi.pd(0u));
-        for (auto const & pd : conf.protectionDomainList()) {
+        for (auto const & pd : conf->protectionDomainList()) {
             Pdk * const pdk = modapi.findPdk(pd.kind.c_str());
             if (!pdk)
                 throw PdkNotFoundException{};
