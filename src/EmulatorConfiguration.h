@@ -43,6 +43,10 @@ public: /* Types: */
             Exception,
             DuplicatePdNameException,
             "Duplicate protection domain name in configuration!");
+    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(
+            Exception,
+            EmptyPdNameException,
+            "Empty ProtectionDomain name!");
 
     struct FacilityModuleEntry {
         std::string filename;

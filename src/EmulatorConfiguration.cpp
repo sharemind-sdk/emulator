@@ -62,15 +62,18 @@ void EmulatorConfiguration::init() {
                         ModuleEntry{
                             v.get<std::string>("File"),
                             v.get<std::string>("Configuration", "")});
-            } else if (section.find("ProtectionDomain") == 0u) {
-                ProtectionDomainEntry newProtectionDomain;
-                // check if new MinerNode is unique
+            } else if (section.find("ProtectionDomain ") == 0u) {
+                auto pdName(section.substr(17, section.size()));
+                if (pdName.empty())
+                    throw EmptyPdNameException();
+                // check if new protection domain is unique
                 for (ProtectionDomainEntry const & e : m_protectionDomainList)
-                    if (e.name == newProtectionDomain.name)
+                    if (e.name == pdName)
                         throw DuplicatePdNameException{};
 
                 // Now we have found a unique ProtectionDomainX section.
-                newProtectionDomain.name = v.get<std::string>("Name");
+                ProtectionDomainEntry newProtectionDomain;
+                newProtectionDomain.name = pdName;
                 newProtectionDomain.kind = v.get<std::string>("Kind");
                 newProtectionDomain.configurationFile =
                         v.get<std::string>("Configuration");
