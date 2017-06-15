@@ -777,8 +777,6 @@ parseCommandLine_printArgs:
     }
     if (!r.bytecodeFilename)
         throw UsageException{"No bytecode FILENAME argument given!"};
-    if (!r.configurationFilename)
-        throw UsageException{"No --conf=FILENAME argument given!"};
     processArguments = inputData.readArguments();
     return r;
 }
