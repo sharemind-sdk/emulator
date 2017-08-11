@@ -21,8 +21,8 @@
 #define SHAREMIND_EMULATOR_EMULATORCONFIGURATION_H
 
 #include <exception>
-#include <sharemind/Configuration.h>
 #include <sharemind/Exception.h>
+#include <sharemind/libconfiguration/Configuration.h>
 #include <string>
 #include <utility>
 #include <vector>

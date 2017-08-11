@@ -23,7 +23,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/xpressive/xpressive_static.hpp>
-#include <sharemind/XdgBaseDirectory.h>
+#include <sharemind/libconfiguration/XdgBaseDirectory.h>
 
 
 namespace sharemind {
