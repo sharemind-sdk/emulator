@@ -17,20 +17,17 @@
 # For further information, please contact us at sharemind@cyber.ee.
 #
 
-CMAKE_MINIMUM_REQUIRED(VERSION "2.8.12")
+CMAKE_MINIMUM_REQUIRED(VERSION "3.0.0")
 PROJECT(SHAREMIND_EMULATOR "CXX")
-SET(SHAREMIND_EMULATOR_VERSION "0.1")
+
+SET(CPACK_PACKAGE_VERSION_MAJOR "1")
+SET(CPACK_PACKAGE_VERSION_MINOR "0")
+SET(CPACK_PACKAGE_VERSION_PATCH "0")
+SET(SHAREMIND_EMULATOR_VERSION
+    "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 
 INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/config.local" OPTIONAL)
 INCLUDE("${CMAKE_CURRENT_BINARY_DIR}/config.local" OPTIONAL)
-
-ADD_COMPILE_OPTIONS(
-  "-std=c++11" "-Wall" "-Wextra" "-O2"
-  "$<$<NOT:$<STREQUAL:$<CONFIGURATION>,Release>>:-ggdb>"
-  "$<$<NOT:$<STREQUAL:$<CONFIGURATION>,Release>>:-fno-omit-frame-pointer>"
-  "$<$<STREQUAL:$<CONFIGURATION>,Release>:-DNDEBUG>"
-  "$<$<STREQUAL:$<CONFIGURATION>,Release>:-fomit-frame-pointer>"
-)
 
 FIND_PROGRAM(HELP2MAN help2man)
 FIND_PACKAGE(Boost 1.50 COMPONENTS system filesystem REQUIRED)
@@ -42,6 +39,31 @@ FIND_PACKAGE(SharemindLibmodapiCxx 0.3.0 REQUIRED)
 FIND_PACKAGE(SharemindLibProcessFacility 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibRandom REQUIRED)
 FIND_PACKAGE(SharemindLibvmCxx 0.5.0 REQUIRED)
+FIND_PROGRAM(objcopy NAMES "objcopy" "${CMAKE_LIBRARY_ARCHITECTURE}-objcopy")
+IF(NOT objcopy)
+    MESSAGE(FATAL_ERROR "Required program not found: objcopy")
+ELSE()
+    MESSAGE(STATUS "Found objcopy: ${objcopy}")
+ENDIF()
+
+ADD_COMPILE_OPTIONS(
+  "-std=c++11" "-Wall" "-Wextra" "-O2"
+  "$<$<NOT:$<STREQUAL:$<CONFIGURATION>,Release>>:-ggdb>"
+  "$<$<NOT:$<STREQUAL:$<CONFIGURATION>,Release>>:-fno-omit-frame-pointer>"
+  "$<$<STREQUAL:$<CONFIGURATION>,Release>:-DNDEBUG>"
+  "$<$<STREQUAL:$<CONFIGURATION>,Release>:-fomit-frame-pointer>"
+)
+INCLUDE(CheckCXXCompilerFlag)
+FUNCTION(CHECK_ADD_COMPILER_FLAG flag)
+    STRING(SUBSTRING "${flag}" 1 -1 FlagName)
+    CHECK_CXX_COMPILER_FLAG("${flag}" CXX_COMPILER_HAS_${FlagName}_FLAG)
+    IF(CXX_COMPILER_HAS_${FlagName}_FLAG)
+        ADD_COMPILE_OPTIONS("${flag}")
+    ENDIF()
+ENDFUNCTION()
+CHECK_ADD_COMPILER_FLAG("-Wzero-as-null-pointer-constant")
+CHECK_ADD_COMPILER_FLAG("-Wsuggest-override")
+CHECK_ADD_COMPILER_FLAG("-Wno-noexcept-type")
 
 INCLUDE_DIRECTORIES(
     ${Boost_INCLUDE_DIRS}
@@ -90,11 +112,24 @@ FILE(GLOB_RECURSE SHAREMIND_EMULATOR_DOCS
      "${CMAKE_CURRENT_SOURCE_DIR}/doc/*")
 ADD_CUSTOM_TARGET("include_Emulator_docs_in_IDE"
                   SOURCES ${SHAREMIND_EMULATOR_DOCS})
-
 ADD_EXECUTABLE(sharemind-emulator ${SHAREMIND_EMULATOR_SOURCES})
 TARGET_LINK_LIBRARIES(sharemind-emulator ${Emulator_LIBRARIES})
+INSTALL(TARGETS sharemind-emulator RUNTIME DESTINATION "bin" COMPONENT "bin")
 
-INSTALL(TARGETS sharemind-emulator RUNTIME DESTINATION "bin")
+ADD_CUSTOM_COMMAND(TARGET sharemind-emulator POST_BUILD
+    COMMAND "${objcopy}" "--compress-debug-sections"
+                         "$<TARGET_FILE:sharemind-emulator>"
+                         "$<TARGET_FILE:sharemind-emulator>.debug"
+    COMMAND "${objcopy}"
+                "--strip-unneeded"
+                "--remove-section=.comment"
+                "--remove-section=.note"
+                "--remove-section=.note.*"
+                "--add-gnu-debuglink=$<TARGET_FILE:sharemind-emulator>.debug"
+                "$<TARGET_FILE:sharemind-emulator>"
+)
+INSTALL(FILES "$<TARGET_FILE:sharemind-emulator>.debug" DESTINATION "lib/debug"
+        COMPONENT "debug")
 
 FUNCTION(GetEmulatorLdLibraryPath out)
     SET(L "")
@@ -129,9 +164,45 @@ FUNCTION(GenerateManPage)
                     ${CMAKE_CURRENT_BINARY_DIR}/sharemind-emulator
             COMMENT "Generating manual page for sharemind-emulator")
     INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/sharemind-emulator.1"
-            DESTINATION "share/man/man1")
+            DESTINATION "share/man/man1"
+            COMPONENT "bin")
 ENDFUNCTION()
 
 IF(HELP2MAN)
     GenerateManPage()
 ENDIF()
+
+
+# Packaging:
+SET(CPACK_PACKAGE_VENDOR "Cybernetica AS")
+SET(CPACK_PACKAGE_CONTACT "Sharemind packaging <sharemind-packaging@cyber.ee>")
+SET(CPACK_GENERATOR "DEB")
+SET(CPACK_DEBIAN_PACKAGE_NAME "sharemind-emulator")
+SET(CPACK_DEBIAN_PACKAGE_RELEASE "cyber1")
+SET(CPACK_DEBIAN_COMPRESSION_TYPE "xz")
+SET(CPACK_DEB_COMPONENT_INSTALL "ON")
+SET(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+
+SET(CPACK_DEBIAN_BIN_PACKAGE_NAME "sharemind-emulator")
+SET(CPACK_COMPONENT_BIN_DESCRIPTION "Sharemind Emulator")
+SET(CPACK_COMPONENT_DEBUG_DESCRIPTION "Sharemind Emulator debug symbols")
+
+SET(BV "${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.0")
+SET(CPACK_DEBIAN_BIN_PACKAGE_DEPENDS
+    "libboost-filesystem${BV}"
+    "libboost-system${BV}"
+    "libc6 (>= 2.19)"
+    "libsharemind-configuration (>= 0.1.0)"
+    "libsharemind-fmodapi (>= 0.3.0)"
+    "libsharemind-modapi (>= 0.3.0)"
+    "libsharemind-random (>= 0.2.0)"
+    "libsharemind-vm (>= 0.5.0)"
+    "libstdc++6 (>= 4.8.0)"
+)
+STRING(REPLACE ";" ", " CPACK_DEBIAN_BIN_PACKAGE_DEPENDS
+       "${CPACK_DEBIAN_BIN_PACKAGE_DEPENDS}")
+SET(CPACK_DEBIAN_DEBUG_PACKAGE_DEPENDS
+    "sharemind-emulator (= ${SHAREMIND_EMULATOR_VERSION})")
+SET(CPACK_DEBIAN_BIN_PACKAGE_SECTION "net")
+SET(CPACK_DEBIAN_DEBUG_PACKAGE_SECTION "debug")
+INCLUDE(CPack)
