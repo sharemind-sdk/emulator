@@ -24,12 +24,16 @@
 #include <limits>
 #include <iostream>
 #include <sharemind/EndianMacros.h>
+#include <sharemind/FunctionAttributes.h>
 #include <sharemind/MicrosecondTime.h>
 #include <sharemind/Random/CryptographicRandom.h>
 #include <system_error>
 #include <unistd.h>
 #include "Syscalls.h"
 
+
+#define EMULATOR_SYSCALL(...) \
+    SHAREMIND_HIDDEN_FUNCTION(SHAREMIND_MODULE_API_0x1_SYSCALL(__VA_ARGS__))
 
 namespace sharemind {
 
@@ -72,10 +76,11 @@ IController::ValueMap processArguments;
 int processResultsStream = STDOUT_FILENO;
 
 /* Mandatory ref parameter: output buffer */
+SHAREMIND_HIDDEN_FUNCTION(
 template <void (*F)(void * buf, std::size_t bufSize) noexcept>
 SHAREMIND_MODULE_API_0x1_SYSCALL(blockingRandomize_,
                                  args, num_args, refs, crs,
-                                 returnValue, c)
+                                 returnValue, c))
 {
     (void) c;
     (void) args;
@@ -91,10 +96,11 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(blockingRandomize_,
 
 /* Mandatory ref parameter: output buffer
    Return value: Number of bytes of randomness written to buffer. */
+SHAREMIND_HIDDEN_FUNCTION(
 template <std::size_t (*F)(void * buf, std::size_t bufSize) noexcept>
 SHAREMIND_MODULE_API_0x1_SYSCALL(nonblockingRandomize_,
                                  args, num_args, refs, crs,
-                                 returnValue, c)
+                                 returnValue, c))
 {
     (void) c;
     (void) args;
@@ -115,7 +121,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(nonblockingRandomize_,
 extern "C" {
 
 #define PASS_SYSCALL(name, to) \
-    SHAREMIND_MODULE_API_0x1_SYSCALL(name, args, num_args, refs, crefs, ret, c)\
+    EMULATOR_SYSCALL(name, args, num_args, refs, crefs, ret, c)\
     { return (to)(args, num_args, refs, crefs, ret, c); }
 
 PASS_SYSCALL(blockingRandomize,
@@ -127,9 +133,8 @@ PASS_SYSCALL(nonblockingRandomize,
 PASS_SYSCALL(nonblockingURandomize,
              nonblockingRandomize_<sharemind::cryptographicURandomNonblocking>);
 
-SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logMicroseconds,
-                                 args, num_args, refs, crefs,
-                                 returnValue, c)
+EMULATOR_SYSCALL(Process_logMicroseconds, args, num_args, refs, crefs,
+                 returnValue, c)
 {
     (void) args;
     (void) num_args;
@@ -147,10 +152,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logMicroseconds,
   Optional ref parameter: argument data buffer
   Return value: argument data length
 */
-SHAREMIND_MODULE_API_0x1_SYSCALL(Process_argument,
-                                 args, num_args, refs, crs,
-                                 returnValue, c)
-{
+EMULATOR_SYSCALL(Process_argument, args, num_args, refs, crs, returnValue, c) {
     (void) args;
 
     if (!crs || crs[1u].pData // Check for one cref argument
@@ -199,9 +201,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_argument,
   Mandatory stack argument: end index in data
   No return value
 */
-SHAREMIND_MODULE_API_0x1_SYSCALL(Process_setResult,
-                                 args, num_args, refs, crefs,
-                                 returnValue, c)
+EMULATOR_SYSCALL(Process_setResult, args, num_args, refs, crefs, returnValue, c)
 {
     typedef char const * const CCP;
     if (// Check for four cref arguments:
@@ -249,9 +249,7 @@ SHAREMIND_MODULE_API_0x1_SYSCALL(Process_setResult,
     }
 }
 
-SHAREMIND_MODULE_API_0x1_SYSCALL(Process_logString,
-                                 args, num_args, refs, crefs,
-                                 returnValue, c)
+EMULATOR_SYSCALL(Process_logString, args, num_args, refs, crefs, returnValue, c)
 {
     (void) args;
 

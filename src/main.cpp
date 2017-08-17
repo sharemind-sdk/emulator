@@ -57,11 +57,13 @@
 #include "Syscalls.h"
 
 
+using namespace sharemind;
+
 #ifndef SHAREMIND_EMULATOR_VERSION
 #error SHAREMIND_EMULATOR_VERSION not defined!
 #endif
 
-namespace sharemind {
+namespace {
 
 constexpr std::size_t buf8k_size = 8192u;
 char buf8k[buf8k_size];
@@ -854,10 +856,9 @@ Vm::Context vmContext{nullptr,
                       &vmFindPd,
                       &vmFindProcessFacility};
 
-} // namespace sharemind {
+} // anonymous namespace
 
 int main(int argc, char * argv[]) {
-    using namespace sharemind;
     try {
         {
             struct sigaction sa;

@@ -29,9 +29,10 @@
 namespace sharemind {
 
 extern std::map<std::string, SharemindSyscallWrapper const> const
-       staticSyscallWrappers;
-extern IController::ValueMap processArguments;
-extern int processResultsStream;
+       staticSyscallWrappers __attribute__((visibility("internal")));
+extern IController::ValueMap processArguments
+        __attribute__((visibility("internal")));
+extern int processResultsStream __attribute__((visibility("internal")));
 
 } /* namespace sharemind { */
 

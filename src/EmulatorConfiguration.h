@@ -31,7 +31,9 @@
 namespace sharemind {
 
 /** \brief Parses and stores the configuration for a miner from a file. */
-class EmulatorConfiguration: public Configuration {
+class __attribute__ ((visibility("internal"))) EmulatorConfiguration
+    : public Configuration
+{
 
 public: /* Types: */
 
