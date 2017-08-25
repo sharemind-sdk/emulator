@@ -38,7 +38,7 @@ FIND_PACKAGE(SharemindLibFModapiCxx 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibModapiCxx 0.3.0 REQUIRED)
 FIND_PACKAGE(SharemindLibProcessFacility 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibRandom REQUIRED)
-FIND_PACKAGE(SharemindLibvmCxx 0.5.0 REQUIRED)
+FIND_PACKAGE(SharemindLibVmCxx 0.5.0 REQUIRED)
 FIND_PROGRAM(objcopy NAMES "objcopy" "${CMAKE_LIBRARY_ARCHITECTURE}-objcopy")
 IF(NOT objcopy)
     MESSAGE(FATAL_ERROR "Required program not found: objcopy")
@@ -74,7 +74,7 @@ INCLUDE_DIRECTORIES(
     ${SharemindLibModapiCxx_INCLUDE_DIRS}
     ${SharemindLibProcessFacility_INCLUDE_DIRS}
     ${SharemindLibRandom_INCLUDE_DIRS}
-    ${SharemindLibvmCxx_INCLUDE_DIRS}
+    ${SharemindLibVmCxx_INCLUDE_DIRS}
 )
 ADD_DEFINITIONS(
     ${SharemindCxxHeaders_DEFINITIONS}
@@ -84,7 +84,7 @@ ADD_DEFINITIONS(
     ${SharemindLibModapiCxx_DEFINITIONS}
     ${SharemindLibProcessFacility_DEFINITIONS}
     ${SharemindLibRandom_DEFINITIONS}
-    ${SharemindLibvmCxx_DEFINITIONS}
+    ${SharemindLibVmCxx_DEFINITIONS}
     "-DSHAREMIND_EMULATOR_VERSION=\"${SHAREMIND_EMULATOR_VERSION}\""
 )
 SET(Emulator_LIBRARIES
@@ -95,7 +95,7 @@ SET(Emulator_LIBRARIES
     ${SharemindLibModapiCxx_LIBRARIES}
     ${SharemindLibProcessFacility_LIBRARIES}
     ${SharemindLibRandom_LIBRARIES}
-    ${SharemindLibvmCxx_LIBRARIES}
+    ${SharemindLibVmCxx_LIBRARIES}
 )
 
 ################################################################################
