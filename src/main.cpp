@@ -38,6 +38,7 @@
 #include <sharemind/EndianMacros.h>
 #include <sharemind/Exception.h>
 #include <sharemind/GlobalDeleter.h>
+#include <sharemind/libaccesscontrolfacility.h>
 #include <sharemind/libfmodapi/libfmodapicxx.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
 #include <sharemind/libprocessfacility.h>
@@ -825,6 +826,15 @@ SharemindPd * vmFindPd(Vm::Context * const, char const * const name) noexcept {
     return pd ? pd->cPtr() : nullptr;
 }
 
+SharemindAccessControlFacility dummyAccessControlFacility{
+    [](SharemindAccessControlFacility const *,
+       char const *, char const *, char const *&) noexcept ->
+            SharemindAccessControlFacilityError
+    {
+        return SHAREMIND_ACCESS_CONTROL_FACILITY_OK;
+    }
+};
+
 SharemindProcessFacility vmProcessFacility{
     [](const SharemindProcessFacility *) noexcept { return "0"; },
     [](const SharemindProcessFacility *) noexcept -> void const *
@@ -907,6 +917,13 @@ int main(int argc, char * argv[]) {
                             "Failed to initialize facility module",
                             fm.filename);
             }
+        }
+        try {
+            modapi.setModuleFacility("AccessControlFacility", &dummyAccessControlFacility);
+        } catch (...) {
+            NESTED_THROW_CONCAT_EXCEPTION(
+                        FacilityModuleInitException,
+                        "Failed to set AccessControlFacility");
         }
         for (auto const & m : conf->moduleList()) {
             Module & module = [&]() -> Module & {
