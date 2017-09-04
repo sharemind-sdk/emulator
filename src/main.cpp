@@ -849,7 +849,11 @@ SharemindProcessFacility vmProcessFacility{
                       <= std::numeric_limits<SharemindGlobalIdSizeType>::max(),
                       "");
         return sizeof(localPid);
-    }
+    },
+    [](const SharemindProcessFacility *) noexcept -> char const *
+            { return ""; },
+    [](const SharemindProcessFacility *) noexcept -> char const *
+            { return ""; }
 };
 
 void * vmFindProcessFacility(Vm::Context * const,
