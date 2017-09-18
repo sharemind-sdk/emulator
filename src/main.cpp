@@ -828,8 +828,8 @@ SharemindPd * vmFindPd(Vm::Context * const, char const * const name) noexcept {
 
 SharemindAccessControlFacility dummyAccessControlFacility{
     [](SharemindAccessControlFacility const *,
-       char const *, char const *, char const *&) noexcept ->
-            SharemindAccessControlFacilityError
+       char const *, char const *,
+       SharemindAccessControlFacilityProgramAcl *&) noexcept
     {
         return SHAREMIND_ACCESS_CONTROL_FACILITY_OK;
     }
