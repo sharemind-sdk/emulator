@@ -827,6 +827,12 @@ SharemindPd * vmFindPd(Vm::Context * const, char const * const name) noexcept {
 }
 
 SharemindAccessControlFacility dummyAccessControlFacility{
+    [](std::size_t, std::size_t) noexcept ->
+            SharemindAccessControlFacilityProgramAcl *
+    {
+        return nullptr;
+    },
+    [](SharemindAccessControlFacilityProgramAcl *) { },
     [](SharemindAccessControlFacility const *,
        char const *, char const *,
        SharemindAccessControlFacilityProgramAcl *&) noexcept
