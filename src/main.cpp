@@ -42,7 +42,9 @@
 #include <sharemind/libfmodapi/libfmodapicxx.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
 #include <sharemind/libprocessfacility.h>
-#include <sharemind/libvm/libvmcxx.h>
+#include <sharemind/libvm/Vm.h>
+#include <sharemind/libvm/Program.h>
+#include <sharemind/libvm/Process.h>
 #include <sharemind/MakeUnique.h>
 #include <sharemind/ScopeExit.h>
 #include <signal.h>
@@ -812,17 +814,15 @@ ModuleApi modapi{[](char const * const signature)
 
 uint64_t const localPid = 0u;
 
-SharemindSyscallWrapper vmFindSyscall(Vm::Context * const,
-                                      char const * const name) noexcept
-{
+SharemindSyscallWrapper vmFindSyscall(std::string const & name) noexcept {
     auto const it = staticSyscallWrappers.find(name);
     if (it != staticSyscallWrappers.end())
         return it->second;
-    return modapi.syscallWrapper(name);
+    return modapi.syscallWrapper(name.c_str());
 }
 
-SharemindPd * vmFindPd(Vm::Context * const, char const * const name) noexcept {
-    Pd * const pd = modapi.findPd(name);
+SharemindPd * vmFindPd(std::string const & name) noexcept {
+    Pd * const pd = modapi.findPd(name.c_str());
     return pd ? pd->cPtr() : nullptr;
 }
 
@@ -862,19 +862,8 @@ SharemindProcessFacility vmProcessFacility{
             { return ""; }
 };
 
-void * vmFindProcessFacility(Vm::Context * const,
-                             char const * const name) noexcept
-{
-    return std::strcmp(name, "ProcessFacility") == 0
-            ? &vmProcessFacility
-            : nullptr;
-}
-
-Vm::Context vmContext{nullptr,
-                      nullptr,
-                      &vmFindSyscall,
-                      &vmFindPd,
-                      &vmFindProcessFacility};
+void * vmFindProcessFacility(std::string const & name) noexcept
+{ return (name == "ProcessFacility") ? &vmProcessFacility : nullptr; }
 
 } // anonymous namespace
 
@@ -983,8 +972,11 @@ int main(int argc, char * argv[]) {
             }
         }
 
-        Vm vm{vmContext};
-        Program program{vm};
+        Vm vm;
+        vm.setPdFinder(vmFindPd);
+        vm.setSyscallFinder(vmFindSyscall);
+        vm.setProcessFacilityFinder(vmFindProcessFacility);
+        Program program(vm);
         try {
             program.loadFromFile(cmdLine.bytecodeFilename);
         } catch (...) {
@@ -1006,7 +998,7 @@ int main(int argc, char * argv[]) {
         SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));
 
         {
-            Process process{program};
+            Process process(program);
             FacilityModulePis::Context ctx{
                 &process,
                 [](FacilityModulePis::Context * const ctx,
@@ -1027,18 +1019,19 @@ int main(int argc, char * argv[]) {
             FacilityModulePis pis(fmodapi, ctx);
             process.setInternal(&vmProcessFacility);
             process.setPdpiFacility("ProcessFacility", &vmProcessFacility);
+
             try {
                 process.run();
             } catch (...) {
-                std::cerr << "At section " << process.currentCodeSection()
+                std::cerr << "At section " << process.currentCodeSectionIndex()
                           << ", block 0x"
                           << std::hex << process.currentIp() << std::dec
                           << '.' << std::endl;
                 throw;
             }
 
-            std::cerr << "Process returned status: " << process.returnValue()
-                      << std::endl;
+            std::cerr << "Process returned status: "
+                      << process.returnValue().int64[0] << std::endl;
         }
     } catch (std::exception const & e) {
         printException(e);

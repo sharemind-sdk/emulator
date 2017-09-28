@@ -38,7 +38,7 @@ FIND_PACKAGE(SharemindLibFModapiCxx 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibModapiCxx 0.3.0 REQUIRED)
 FIND_PACKAGE(SharemindLibProcessFacility 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibRandom REQUIRED)
-FIND_PACKAGE(SharemindLibVmCxx 0.5.0 REQUIRED)
+FIND_PACKAGE(SharemindLibVm 0.6.0 REQUIRED)
 
 
 # Emulator:
@@ -56,7 +56,7 @@ SharemindNewUniqueList(SharemindEmulator_LIBRARIES
     ${SharemindLibModapiCxx_LIBRARIES}
     ${SharemindLibProcessFacility_LIBRARIES}
     ${SharemindLibRandom_LIBRARIES}
-    ${SharemindLibVmCxx_LIBRARIES}
+    ${SharemindLibVm_LIBRARIES}
 )
 SharemindAddExecutable("sharemind-emulator"
     SOURCES
@@ -72,7 +72,7 @@ SharemindAddExecutable("sharemind-emulator"
         ${SharemindLibModapiCxx_INCLUDE_DIRS}
         ${SharemindLibProcessFacility_INCLUDE_DIRS}
         ${SharemindLibRandom_INCLUDE_DIRS}
-        ${SharemindLibVmCxx_INCLUDE_DIRS}
+        ${SharemindLibVm_INCLUDE_DIRS}
     COMPILE_DEFINITIONS
         "SHAREMIND_EMULATOR_VERSION=\"${SharemindEmulator_VERSION}\""
     LEGACY_DEFINITIONS
@@ -84,7 +84,7 @@ SharemindAddExecutable("sharemind-emulator"
         ${SharemindLibModapiCxx_DEFINITIONS}
         ${SharemindLibProcessFacility_DEFINITIONS}
         ${SharemindLibRandom_DEFINITIONS}
-        ${SharemindLibVmCxx_DEFINITIONS}
+        ${SharemindLibVm_DEFINITIONS}
     LINK_LIBRARIES
         ${SharemindEmulator_LIBRARIES}
 )
