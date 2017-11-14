@@ -153,7 +153,7 @@ SharemindAddComponentPackage(bin
         "libboost-system${BV}"
         "libc6 (>= 2.19)"
         "libsharemind-configuration (>= 0.1.0)"
-        "libsharemind-fmodapi (>= 0.3.0)"
+        "libsharemind-fmodapi (>= 0.1.0)"
         "libsharemind-modapi (>= 0.3.0)"
         "libsharemind-random (>= 0.2.0)"
         "libsharemind-vm (>= 0.5.0)"
