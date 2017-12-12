@@ -31,6 +31,7 @@
 #include <limits>
 #include <list>
 #include <memory>
+#include <sharemind/AccessControlProcessFacility.h>
 #include <sharemind/compiler-support/GccVersion.h>
 #include <sharemind/compiler-support/GccPR54277.h>
 #include <sharemind/Concat.h>
@@ -38,7 +39,6 @@
 #include <sharemind/EndianMacros.h>
 #include <sharemind/Exception.h>
 #include <sharemind/GlobalDeleter.h>
-#include <sharemind/libaccesscontrolfacility.h>
 #include <sharemind/libfmodapi/libfmodapicxx.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
 #include <sharemind/libprocessfacility.h>
@@ -826,21 +826,6 @@ SharemindPd * vmFindPd(std::string const & name) noexcept {
     return pd ? pd->cPtr() : nullptr;
 }
 
-SharemindAccessControlFacility dummyAccessControlFacility{
-    [](std::size_t, std::size_t) noexcept ->
-            SharemindAccessControlFacilityProgramAcl *
-    {
-        return nullptr;
-    },
-    [](SharemindAccessControlFacilityProgramAcl *) { },
-    [](SharemindAccessControlFacility const *,
-       char const *, char const *,
-       SharemindAccessControlFacilityProgramAcl *&) noexcept
-    {
-        return SHAREMIND_ACCESS_CONTROL_FACILITY_OK;
-    }
-};
-
 SharemindProcessFacility vmProcessFacility{
     [](const SharemindProcessFacility *) noexcept { return "0"; },
     [](const SharemindProcessFacility *) noexcept -> void const *
@@ -861,6 +846,17 @@ SharemindProcessFacility vmProcessFacility{
     [](const SharemindProcessFacility *) noexcept -> char const *
             { return ""; }
 };
+
+class DummyAccessControlProcessFacility final
+        : public sharemind::AccessControlProcessFacility
+{
+
+    AccessType checkWithPredicates(
+            PreparedPredicate const * const *,
+            std::size_t size) const noexcept final override
+    { return (size == 0u) ? AccessType::Unspecified : AccessType::Allowed; }
+
+} dummyAccessControlProcessFacility;
 
 void * vmFindProcessFacility(std::string const & name) noexcept
 { return (name == "ProcessFacility") ? &vmProcessFacility : nullptr; }
@@ -916,13 +912,6 @@ int main(int argc, char * argv[]) {
                             "Failed to initialize facility module",
                             fm.filename);
             }
-        }
-        try {
-            modapi.setModuleFacility("AccessControlFacility", &dummyAccessControlFacility);
-        } catch (...) {
-            NESTED_THROW_CONCAT_EXCEPTION(
-                        FacilityModuleInitException,
-                        "Failed to set AccessControlFacility");
         }
         for (auto const & m : conf->moduleList()) {
             Module & module = [&]() -> Module & {
@@ -1019,6 +1008,8 @@ int main(int argc, char * argv[]) {
             FacilityModulePis pis(fmodapi, ctx);
             process.setInternal(&vmProcessFacility);
             process.setPdpiFacility("ProcessFacility", &vmProcessFacility);
+            process.setFacility("AccessControlFacility",
+                                &dummyAccessControlProcessFacility);
 
             try {
                 process.run();

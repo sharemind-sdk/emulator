@@ -31,7 +31,7 @@ SharemindSetProjectVersion()
 FIND_PROGRAM(HELP2MAN help2man)
 FIND_PACKAGE(Boost 1.50 COMPONENTS system filesystem REQUIRED)
 FIND_PACKAGE(SharemindCxxHeaders REQUIRED)
-FIND_PACKAGE(SharemindLibAccessControlFacility REQUIRED)
+FIND_PACKAGE(SharemindLibAccessControlProcessFacility REQUIRED)
 FIND_PACKAGE(SharemindLibConfiguration REQUIRED)
 FIND_PACKAGE(SharemindLibIController 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibFModapiCxx 0.1.0 REQUIRED)
@@ -49,7 +49,7 @@ FILE(GLOB_RECURSE SharemindEmulator_HEADERS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
 SharemindNewUniqueList(SharemindEmulator_LIBRARIES
     ${Boost_LIBRARIES}
-    ${SharemindLibAccessControlFacility_LIBRARIES}
+    ${SharemindLibAccessControlProcessFacility_LIBRARIES}
     ${SharemindLibConfiguration_LIBRARIES}
     ${SharemindLibFModapiCxx_LIBRARIES}
     ${SharemindLibIController_LIBRARIES}
@@ -65,7 +65,7 @@ SharemindAddExecutable("sharemind-emulator"
     INCLUDE_DIRECTORIES
         ${Boost_INCLUDE_DIRS}
         ${SharemindCxxHeaders_INCLUDE_DIRS}
-        ${SharemindLibAccessControlFacility_INCLUDE_DIRS}
+        ${SharemindLibAccessControlProcessFacility_INCLUDE_DIRS}
         ${SharemindLibConfiguration_INCLUDE_DIRS}
         ${SharemindLibIController_INCLUDE_DIRS}
         ${SharemindLibFModapiCxx_INCLUDE_DIRS}
@@ -77,7 +77,7 @@ SharemindAddExecutable("sharemind-emulator"
         "SHAREMIND_EMULATOR_VERSION=\"${SharemindEmulator_VERSION}\""
     LEGACY_DEFINITIONS
         ${SharemindCxxHeaders_DEFINITIONS}
-        ${SharemindLibAccessControlFacility_DEFINITIONS}
+        ${SharemindLibAccessControlProcessFacility_DEFINITIONS}
         ${SharemindLibConfiguration_DEFINITIONS}
         ${SharemindLibIController_DEFINITIONS}
         ${SharemindLibFModapiCxx_DEFINITIONS}
