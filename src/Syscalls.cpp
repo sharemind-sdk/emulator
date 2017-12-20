@@ -172,8 +172,11 @@ EMULATOR_SYSCALL(Process_argument, args, num_args, refs, crs, returnValue, c) {
                                        crs[0u].size - 1u};
         auto const it = processArguments.find(argumentName);
         IController::Value const * const a = it->second.get();
-        if (!a)
+        if (!a) {
+            std::cerr <<
+                "Argument \"" << argumentName << "\" not Found!" << std::endl;
             return SHAREMIND_MODULE_API_0x1_GENERAL_ERROR;
+        }
 
         size_t const argSize = a->size();
         returnValue->uint64[0u] = argSize;
