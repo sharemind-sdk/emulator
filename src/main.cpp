@@ -851,10 +851,10 @@ class DummyAccessControlProcessFacility final
         : public sharemind::AccessControlProcessFacility
 {
 
-    AccessType checkWithPredicates(
+    AccessResult checkWithPredicates(
             PreparedPredicate const * const *,
             std::size_t size) const noexcept final override
-    { return (size == 0u) ? AccessType::Unspecified : AccessType::Allowed; }
+    { return (size == 0u) ? AccessResult::Unspecified : AccessResult::Allowed; }
 
 } dummyAccessControlProcessFacility;
 
