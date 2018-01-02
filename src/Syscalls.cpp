@@ -174,7 +174,7 @@ EMULATOR_SYSCALL(Process_argument, args, num_args, refs, crs, returnValue, c) {
         IController::Value const * const a = it->second.get();
         if (!a) {
             std::cerr <<
-                "Argument \"" << argumentName << "\" not Found!" << std::endl;
+                "Argument \"" << argumentName << "\" not found!" << std::endl;
             return SHAREMIND_MODULE_API_0x1_GENERAL_ERROR;
         }
 
