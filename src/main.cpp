@@ -1009,7 +1009,7 @@ int main(int argc, char * argv[]) {
             FacilityModulePis pis(fmodapi, ctx);
             process.setInternal(&vmProcessFacility);
             process.setPdpiFacility("ProcessFacility", &vmProcessFacility);
-            process.setFacility("AccessControlFacility",
+            process.setFacility("AccessControlProcessFacility",
                                 &dummyAccessControlProcessFacility);
 
             try {
