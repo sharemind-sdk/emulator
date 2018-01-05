@@ -1019,7 +1019,16 @@ int main(int argc, char * argv[]) {
                           << ", block 0x"
                           << std::hex << process.currentIp() << std::dec
                           << '.' << std::endl;
-                throw;
+                try {
+                    throw;
+                } catch (Process::SystemCallErrorException const &) {
+                    std::cerr << "System call returned exception: "
+                              << SharemindModuleApiError_toString(
+                                     static_cast<ModuleApiError>(
+                                         process.syscallException()))
+                              << std::endl;
+                    throw;
+                }
             }
 
             std::cerr << "Process returned status: "
