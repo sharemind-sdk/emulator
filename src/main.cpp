@@ -854,7 +854,7 @@ class DummyAccessControlProcessFacility final
     AccessResult checkWithPredicates(
             PreparedPredicate const &,
             PreparedPredicate const * const *,
-            std::size_t size) const noexcept final override
+            std::size_t size) const final override
     { return (size == 0u) ? AccessResult::Unspecified : AccessResult::Allowed; }
 
 } dummyAccessControlProcessFacility;
