@@ -35,6 +35,7 @@
 #include <sharemind/compiler-support/GccVersion.h>
 #include <sharemind/compiler-support/GccPR54277.h>
 #include <sharemind/Concat.h>
+#include <sharemind/Datum.h>
 #include <sharemind/DebugOnly.h>
 #include <sharemind/EndianMacros.h>
 #include <sharemind/Exception.h>
@@ -362,8 +363,8 @@ public: /* Methods: */
         return str;
     }
 
-    inline sharemind::IController::ValueMap readArguments() {
-        sharemind::IController::ValueMap args;
+    void readArguments() {
+        assert(processArguments.empty());
         for (;;) {
             std::string argName;
             {
@@ -383,38 +384,16 @@ public: /* Methods: */
                 argName.resize(size);
                 readData(&argName[0u], size);
             }
-            if (args.find(argName) != args.end())
+            if (processArguments.find(argName) != processArguments.end())
                 throw InputException{};
-            std::string pdName{readString()};
-            std::string typeName{readString()};
+            readString(); // Ignore protection domain name
+            readString(); // Ignore type name
             size_t const size = readSize();
-            auto data = [size]() {
-                void * const ptr = ::operator new(size);
-                try {
-                    return std::shared_ptr<void>(ptr, GlobalDeleter());
-                } catch (...) {
-                    ::operator delete(ptr);
-                    throw;
-                }
-            }();
-            readData(static_cast<char *>(data.get()), size);
-            auto value = std::make_shared<sharemind::IController::Value>(
-                            std::move(pdName),
-                            std::move(typeName),
-                            data,
-                            size);
-            SHAREMIND_DEBUG_ONLY(auto const r =)
-            #if defined(SHAREMIND_GCC_VERSION) && SHAREMIND_GCC_VERSION < 40800
-                    args.insert(
-                        IController::ValueMap::value_type(
-                            std::move(argName),
-                            std::move(value)));
-            #else
-                    args.emplace(std::move(argName), value);
-            #endif
-            assert(r.second);
+            Datum data;
+            data.resize(size);
+            readData(static_cast<char *>(data.data()), size);
+            processArguments.emplace(std::move(argName), std::move(data));
         }
-        return args;
     }
 
     void writeToFileDescriptor(int const fd, char const * const filename) {
@@ -782,7 +761,7 @@ parseCommandLine_printArgs:
     }
     if (!r.bytecodeFilename)
         throw UsageException{"No bytecode FILENAME argument given!"};
-    processArguments = inputData.readArguments();
+    inputData.readArguments();
     return r;
 }
 

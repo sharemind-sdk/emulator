@@ -72,7 +72,7 @@ inline void writeDataWithSize(int const outFd,
     writeData(outFd, data, size);
 }
 
-IController::ValueMap processArguments;
+SimpleUnorderedStringMap<Datum> processArguments;
 int processResultsStream = STDOUT_FILENO;
 
 /* Mandatory ref parameter: output buffer */
@@ -168,23 +168,32 @@ EMULATOR_SYSCALL(Process_argument, args, num_args, refs, crs, returnValue, c) {
     (void) c;
 
     try {
-        std::string const argumentName{static_cast<char const *>(crs[0u].pData),
-                                       crs[0u].size - 1u};
-        auto const it = processArguments.find(argumentName);
-        IController::Value const * const a = it->second.get();
-        if (!a) {
-            std::cerr <<
-                "Argument \"" << argumentName << "\" not found!" << std::endl;
+        struct MyStringRange {
+            char const * begin() const noexcept
+            { return static_cast<char const *>(cref.pData); }
+            char const * end() const noexcept
+            { return static_cast<char const *>(cref.pData) + cref.size - 1u; }
+
+            SharemindModuleApi0x1CReference const & cref;
+        };
+        auto const it = processArguments.find(MyStringRange{crs[0u]});
+        if (it != processArguments.end()) {
+            std::string const argumentName{
+                        static_cast<char const *>(crs[0u].pData),
+                        crs[0u].size - 1u};
+            std::cerr << "Argument \"" << argumentName << "\" not found!"
+                      << std::endl;
             return SHAREMIND_MODULE_API_0x1_GENERAL_ERROR;
         }
 
-        size_t const argSize = a->size();
+        auto const & argument = it->second;
+        size_t const argSize = argument.size();
         returnValue->uint64[0u] = argSize;
         if (refs) {
             assert(refs[0u].size > 0u);
             size_t const toCopy = std::min(refs[0u].size, argSize);
-            std::copy(static_cast<char const *>(a->data().get()),
-                      static_cast<char const *>(a->data().get()) + toCopy,
+            std::copy(static_cast<char const *>(argument.constData()),
+                      static_cast<char const *>(argument.constData()) + toCopy,
                       static_cast<char *>(refs[0u].pData));
         }
         return SHAREMIND_MODULE_API_0x1_OK;

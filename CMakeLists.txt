@@ -33,7 +33,6 @@ FIND_PACKAGE(Boost 1.50 COMPONENTS system filesystem REQUIRED)
 FIND_PACKAGE(SharemindCxxHeaders REQUIRED)
 FIND_PACKAGE(SharemindLibAccessControlProcessFacility REQUIRED)
 FIND_PACKAGE(SharemindLibConfiguration REQUIRED)
-FIND_PACKAGE(SharemindLibIController 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibFModapiCxx 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibModapiCxx 0.3.0 REQUIRED)
 FIND_PACKAGE(SharemindLibProcessFacility 0.1.0 REQUIRED)
@@ -52,7 +51,6 @@ SharemindNewUniqueList(SharemindEmulator_LIBRARIES
     ${SharemindLibAccessControlProcessFacility_LIBRARIES}
     ${SharemindLibConfiguration_LIBRARIES}
     ${SharemindLibFModapiCxx_LIBRARIES}
-    ${SharemindLibIController_LIBRARIES}
     ${SharemindLibModapiCxx_LIBRARIES}
     ${SharemindLibProcessFacility_LIBRARIES}
     ${SharemindLibRandom_LIBRARIES}
@@ -67,7 +65,6 @@ SharemindAddExecutable("sharemind-emulator"
         ${SharemindCxxHeaders_INCLUDE_DIRS}
         ${SharemindLibAccessControlProcessFacility_INCLUDE_DIRS}
         ${SharemindLibConfiguration_INCLUDE_DIRS}
-        ${SharemindLibIController_INCLUDE_DIRS}
         ${SharemindLibFModapiCxx_INCLUDE_DIRS}
         ${SharemindLibModapiCxx_INCLUDE_DIRS}
         ${SharemindLibProcessFacility_INCLUDE_DIRS}
@@ -79,7 +76,6 @@ SharemindAddExecutable("sharemind-emulator"
         ${SharemindCxxHeaders_DEFINITIONS}
         ${SharemindLibAccessControlProcessFacility_DEFINITIONS}
         ${SharemindLibConfiguration_DEFINITIONS}
-        ${SharemindLibIController_DEFINITIONS}
         ${SharemindLibFModapiCxx_DEFINITIONS}
         ${SharemindLibModapiCxx_DEFINITIONS}
         ${SharemindLibProcessFacility_DEFINITIONS}

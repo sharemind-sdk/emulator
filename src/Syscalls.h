@@ -21,8 +21,9 @@
 #define SHAREMIND_EMULATOR_SYSCALLS_H
 
 #include <map>
-#include <sharemind/controller/IController.h>
+#include <sharemind/Datum.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
+#include <sharemind/SimpleUnorderedStringMap.h>
 #include <string>
 
 
@@ -30,7 +31,7 @@ namespace sharemind {
 
 extern std::map<std::string, SharemindSyscallWrapper const> const
        staticSyscallWrappers __attribute__((visibility("internal")));
-extern IController::ValueMap processArguments
+extern SimpleUnorderedStringMap<Datum> processArguments
         __attribute__((visibility("internal")));
 extern int processResultsStream __attribute__((visibility("internal")));
 
