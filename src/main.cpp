@@ -663,9 +663,28 @@ parseCommandLine_xstr:
         for (char const * str = argument; *str; str += 2u) {
             auto const getVal = [=](char const s) {
                 switch (s) {
-                case 'a' ... 'f': return (s - 'a') + 0xa;
-                case 'A' ... 'F': return (s - 'A') + 0xA;
-                case '0' ... '9': return (s - '0') + 0x0;
+                case '0': return 0x0;
+                case '1': return 0x1;
+                case '2': return 0x2;
+                case '3': return 0x3;
+                case '4': return 0x4;
+                case '5': return 0x5;
+                case '6': return 0x6;
+                case '7': return 0x7;
+                case '8': return 0x8;
+                case '9': return 0x9;
+                case 'a': return 0xa;
+                case 'b': return 0xb;
+                case 'c': return 0xc;
+                case 'd': return 0xd;
+                case 'e': return 0xe;
+                case 'f': return 0xf;
+                case 'A': return 0xa;
+                case 'B': return 0xb;
+                case 'C': return 0xc;
+                case 'D': return 0xd;
+                case 'E': return 0xe;
+                case 'F': return 0xf;
                 default:
                     throwConcatException<UsageException>(
                         "Invalid --xstr=HEXBYTES argument given: ",
