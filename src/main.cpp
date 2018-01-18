@@ -125,7 +125,7 @@ DEFINE_EXCEPTION_CONST_MSG(InputException, "Invalid input to program!");
 
 struct InputData {
     virtual ~InputData() noexcept {}
-    virtual size_t read(void * buf, size_t size) = 0;
+    virtual std::size_t read(void * buf, std::size_t size) = 0;
     virtual void writeToFileDescriptor(int const fd,
                                        char const * const filename) = 0;
 };
@@ -136,7 +136,7 @@ public: /* Methods: */
 
     inline void write(char const c) { m_data.push_back(c); }
 
-    inline void write(void const * const data, size_t const size) {
+    inline void write(void const * const data, std::size_t const size) {
         char const * const d = static_cast<char const *>(data);
         write(d, d + size);
     }
@@ -144,12 +144,12 @@ public: /* Methods: */
     template <typename Iter> inline void write(Iter first, Iter last)
     { m_data.insert(m_data.end(), first, last); }
 
-    size_t read(void * buf, size_t size) final override {
+    std::size_t read(void * buf, std::size_t size) final override {
         assert(size > 0u);
-        size_t const dataLeft = m_data.size() - m_pos;
+        std::size_t const dataLeft = m_data.size() - m_pos;
         if (dataLeft == 0u)
             return 0u;
-        size_t const toRead = std::min(size, dataLeft);
+        std::size_t const toRead = std::min(size, dataLeft);
         ::memcpy(buf, m_data.data() + m_pos, toRead);
         m_pos += toRead;
         return toRead;
@@ -162,13 +162,13 @@ public: /* Methods: */
     static void writeToFileDescriptor(int const fd,
                                       char const * const filename,
                                       char const * buf,
-                                      size_t size)
+                                      std::size_t size)
     {
         do {
             auto const r = ::write(fd, buf, size);
             if (r > 0) {
-                assert(static_cast<size_t>(r) <= size);
-                size -= static_cast<size_t>(r);
+                assert(static_cast<std::size_t>(r) <= size);
+                size -= static_cast<std::size_t>(r);
                 if (size == 0u)
                     return;
                 buf += r;
@@ -185,7 +185,7 @@ public: /* Methods: */
 private: /* Fields: */
 
     std::vector<char> m_data;
-    size_t m_pos = 0u;
+    std::size_t m_pos = 0u;
 
 };
 
@@ -205,7 +205,7 @@ public: /* Methods: */
 
     inline ~FileInputData() noexcept final override { ::close(m_fd); }
 
-    inline size_t read(void * buf, size_t size) final override {
+    inline std::size_t read(void * buf, std::size_t size) final override {
         assert(size > 0u);
         for (;;) {
             ssize_t const r = ::read(m_fd, buf, size);
@@ -227,10 +227,11 @@ public: /* Methods: */
             if (rr == 0u) {
                 return;
             } else if (rr > 0u) {
-                BufferInputData::writeToFileDescriptor(fd,
-                                                       filename,
-                                                       buf8k,
-                                                       static_cast<size_t>(rr));
+                BufferInputData::writeToFileDescriptor(
+                            fd,
+                            filename,
+                            buf8k,
+                            static_cast<std::size_t>(rr));
             } else {
                 assert(rr == -1);
                 if ((errno != EAGAIN) && (errno != EINTR))
@@ -320,12 +321,12 @@ public: /* Methods: */
         writeIntegral<T, bigEndian>(integer);
     }
 
-    inline void readData(void * buf, size_t size) {
+    inline void readData(void * buf, std::size_t size) {
         assert(buf);
         assert(size > 0u);
         while (!m_data.empty()) {
             InputData * const i = m_data.front();
-            size_t const r = i->read(buf, size);
+            std::size_t const r = i->read(buf, size);
             assert(r <= size);
             if (r == size)
                 return;
@@ -337,22 +338,22 @@ public: /* Methods: */
         throw InputException();
     }
 
-    inline uint64_t readSwapUint64() {
-        char buf[sizeof(uint64_t)];
-        readData(buf, sizeof(uint64_t));
-        uint64_t out;
-        ::memcpy(&out, buf, sizeof(uint64_t));
+    inline std::uint64_t readSwapUint64() {
+        char buf[sizeof(std::uint64_t)];
+        readData(buf, sizeof(std::uint64_t));
+        std::uint64_t out;
+        ::memcpy(&out, buf, sizeof(std::uint64_t));
         return littleEndianToHost(out);
     }
 
-    inline size_t readSize() {
-        static_assert(std::numeric_limits<uint64_t>::max()
-                      <= std::numeric_limits<size_t>::max(), "");
+    inline std::size_t readSize() {
+        static_assert(std::numeric_limits<std::uint64_t>::max()
+                      <= std::numeric_limits<std::size_t>::max(), "");
         return readSwapUint64();
     }
 
     inline std::string readString() {
-        size_t const size = readSwapUint64();
+        std::size_t const size = readSwapUint64();
         if (size == 0u)
             return {};
         std::string str;
@@ -366,19 +367,19 @@ public: /* Methods: */
         for (;;) {
             std::string argName;
             {
-                char buf[sizeof(uint64_t)];
+                char buf[sizeof(std::uint64_t)];
                 // Peek:
                 try {
                     readData(buf, 1u);
                 } catch (InputException const &) {
                     break;
                 }
-                readData(&buf[1u], sizeof(uint64_t) - 1u);
-                uint64_t out;
-                ::memcpy(&out, buf, sizeof(uint64_t));
-                static_assert(std::numeric_limits<uint64_t>::max()
-                              <= std::numeric_limits<size_t>::max(), "");
-                size_t const size = littleEndianToHost(out);
+                readData(&buf[1u], sizeof(std::uint64_t) - 1u);
+                std::uint64_t out;
+                ::memcpy(&out, buf, sizeof(std::uint64_t));
+                static_assert(std::numeric_limits<std::uint64_t>::max()
+                              <= std::numeric_limits<std::size_t>::max(), "");
+                std::size_t const size = littleEndianToHost(out);
                 argName.resize(size);
                 readData(&argName[0u], size);
             }
@@ -386,7 +387,7 @@ public: /* Methods: */
                 throw InputException{};
             readString(); // Ignore protection domain name
             readString(); // Ignore type name
-            size_t const size = readSize();
+            std::size_t const size = readSize();
             Datum data;
             data.resize(size);
             readData(static_cast<char *>(data.data()), size);
@@ -499,7 +500,7 @@ inline CommandLineArgs parseCommandLine(int const argc,
     programName = argv[0u];
     CommandLineArgs r;
     InputStream inputData;
-    for (size_t i = 1u; i < static_cast<size_t>(argc); i++) {
+    for (std::size_t i = 1u; i < static_cast<std::size_t>(argc); i++) {
         char const * opt = argv[i];
         if (opt[0u] != '-') {
             if (r.bytecodeFilename)
@@ -518,7 +519,7 @@ inline CommandLineArgs parseCommandLine(int const argc,
 #define SHORTOPT(name,label) case name: goto parseCommandLine_ ## label
 #define SHORTOPT_ARG(name,sName,aName,label) \
     case name: \
-        if (++i >= static_cast<size_t>(argc)) \
+        if (++i >= static_cast<std::size_t>(argc)) \
             throw UsageException{sName " option is missing " aName \
                                  " argument"}; \
         argument = argv[i]; \
@@ -645,7 +646,7 @@ parseCommandLine_xstr:
 #define PROCESS_INTARG_(argname,type,big) \
     parseCommandLine_ ## argname: \
         try { \
-            inputData.writeIntegral<type ## _t, big>(argument); \
+            inputData.writeIntegral<std::type ## _t, big>(argument); \
         } catch (WriteIntegralArgumentException const &) { \
             throw UsageException{ \
                         "Invalid --" #argname "=VALUE argument given!", \
@@ -667,7 +668,7 @@ PROCESS_INTARG(uint64)
 
 #define PROCESS_SINT(width,bitwidth) \
     parseCommandLine_ ## width: \
-        inputData.writeIntegral<uint64_t>(width ## u); \
+        inputData.writeIntegral<std::uint64_t>(width ## u); \
         goto parseCommandLine_uint ## bitwidth
 
 PROCESS_SINT(2, 16);
@@ -678,9 +679,9 @@ parseCommandLine_str:
 
         {
             auto const size = strlen(argument);
-            if (size > std::numeric_limits<uint64_t>::max())
+            if (size > std::numeric_limits<std::uint64_t>::max())
                 throw InputStringTooBigException{};
-            inputData.writeIntegral(static_cast<uint64_t>(size));
+            inputData.writeIntegral(static_cast<std::uint64_t>(size));
             if (size > 0u)
                 inputData.writeData(argument, argument + size);
         }
@@ -706,10 +707,10 @@ parseCommandLine_file:
             using UnsignedOffT = std::make_unsigned<off_t>::type;
             static_assert(static_cast<UnsignedOffT>(
                               std::numeric_limits<off_t>::max())
-                          <= std::numeric_limits<uint64_t>::max(),
+                          <= std::numeric_limits<std::uint64_t>::max(),
                           "");
-            uint64_t const size =
-                    hostToLittleEndian(static_cast<uint64_t>(st.st_size));
+            std::uint64_t const size =
+                    hostToLittleEndian(static_cast<std::uint64_t>(st.st_size));
             inputData.writeData(&size, sizeof(size));
             inputData.writeFile(fd, argument);
         }
@@ -764,8 +765,8 @@ parseCommandLine_printArgs:
 }
 
 inline void printException_(std::exception const & e,
-                             size_t const levelNow,
-                             size_t & totalLevels) noexcept
+                            std::size_t const levelNow,
+                            std::size_t & totalLevels) noexcept
 {
     try {
         std::rethrow_if_nested(e);
@@ -777,7 +778,7 @@ inline void printException_(std::exception const & e,
 }
 
 inline void printException(std::exception const & e) noexcept {
-    size_t levels = 1u;
+    std::size_t levels = 1u;
     printException_(e, 1u, levels);
 }
 
@@ -789,7 +790,7 @@ ModuleApi modapi{[](char const * const signature)
                  [](char const * const signature)
                    { return fmodapi.findPdpiFacility(signature); }};
 
-uint64_t const localPid = 0u;
+std::uint64_t const localPid = 0u;
 
 SharemindSyscallWrapper vmFindSyscall(std::string const & name) noexcept {
     auto const it = staticSyscallWrappers.find(name);

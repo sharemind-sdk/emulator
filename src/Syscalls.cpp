@@ -37,12 +37,12 @@
 
 namespace sharemind {
 
-inline void writeData(int const outFd, char const * buf, size_t size) {
+inline void writeData(int const outFd, char const * buf, std::size_t size) {
     if (size > 0u) {
         for (;;) {
             auto const written = ::write(outFd, buf, size);
             if (written > 0) {
-                size_t const uWritten = static_cast<size_t>(written);
+                std::size_t const uWritten = static_cast<std::size_t>(written);
                 assert(uWritten <= size);
                 size -= uWritten;
                 if (size == 0u)
@@ -57,7 +57,7 @@ inline void writeData(int const outFd, char const * buf, size_t size) {
     };
 }
 
-inline void writeSwapUint64(int const outFd, uint64_t v) {
+inline void writeSwapUint64(int const outFd, std::uint64_t v) {
     v = hostToLittleEndian(v);
     char d[sizeof(v)];
     memcpy(d, &v, sizeof(v));
@@ -66,7 +66,7 @@ inline void writeSwapUint64(int const outFd, uint64_t v) {
 
 inline void writeDataWithSize(int const outFd,
                               char const * data,
-                              size_t const size)
+                              std::size_t const size)
 {
     writeSwapUint64(outFd, size);
     writeData(outFd, data, size);
@@ -187,11 +187,11 @@ EMULATOR_SYSCALL(Process_argument, args, num_args, refs, crs, returnValue, c) {
         }
 
         auto const & argument = it->second;
-        size_t const argSize = argument.size();
+        std::size_t const argSize = argument.size();
         returnValue->uint64[0u] = argSize;
         if (refs) {
             assert(refs[0u].size > 0u);
-            size_t const toCopy = std::min(refs[0u].size, argSize);
+            std::size_t const toCopy = std::min(refs[0u].size, argSize);
             std::copy(static_cast<char const *>(argument.constData()),
                       static_cast<char const *>(argument.constData()) + toCopy,
                       static_cast<char *>(refs[0u].pData));
@@ -232,8 +232,8 @@ EMULATOR_SYSCALL(Process_setResult, args, num_args, refs, crefs, returnValue, c)
         return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
     }
 
-    uint64_t const begin = args[0u].uint64[0u];
-    uint64_t const end = args[1u].uint64[0u];
+    std::uint64_t const begin = args[0u].uint64[0u];
+    std::uint64_t const end = args[1u].uint64[0u];
 
     if (begin > end || end > crefs[3u].size)
         return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
@@ -275,7 +275,7 @@ EMULATOR_SYSCALL(Process_logString, args, num_args, refs, crefs, returnValue, c)
     assert(c);
     (void) c;
 
-    if (crefs[0u].size == std::numeric_limits<size_t>::max())
+    if (crefs[0u].size == std::numeric_limits<std::size_t>::max())
         return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
 
     try {
@@ -285,7 +285,7 @@ EMULATOR_SYSCALL(Process_logString, args, num_args, refs, crefs, returnValue, c)
         char const * sstart = static_cast<char const *>(crefs[0u].pData);
         char const * scur = sstart;
         char const * ssend = sstart + crefs[0u].size;
-        size_t slen = 0u;
+        std::size_t slen = 0u;
         while (scur != ssend) {
             switch (*scur) {
                 case '\n':
