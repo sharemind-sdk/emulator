@@ -37,7 +37,7 @@ class __attribute__ ((visibility("internal"))) EmulatorConfiguration
 
 public: /* Types: */
 
-    SHAREMIND_DEFINE_EXCEPTION(std::exception, Exception);
+    SHAREMIND_DEFINE_EXCEPTION(sharemind::Exception, Exception);
     SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(Exception,
                                          ParseException,
                                          "Failed to parse configuration file!");
