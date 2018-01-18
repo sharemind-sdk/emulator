@@ -72,32 +72,29 @@ namespace {
 constexpr std::size_t buf8k_size = 8192u;
 char buf8k[buf8k_size];
 
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, UsageException);
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, FacilityModuleLoadException);
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, FacilityModuleInitException);
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, ModuleLoadException);
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, ModuleInitException);
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, PdCreateException);
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, PdStartException);
-SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
-                                     PdkNotFoundException,
-                                     "Protection domain kind not found!");
-SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
-                                     InputStringTooBigException,
-                                     "Input string too big!");
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, OutputFileOpenException);
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, OutputFileException);
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileOpenException);
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, InputFileException);
-SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, ProgramLoadException);
+#define DEFINE_EXCEPTION_CONCAT(name) \
+    SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, name);
+#define DEFINE_EXCEPTION_CONST_MSG(name, ...) \
+    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception, name, __VA_ARGS__);
+DEFINE_EXCEPTION_CONCAT(UsageException);
+DEFINE_EXCEPTION_CONCAT(FacilityModuleLoadException);
+DEFINE_EXCEPTION_CONCAT(FacilityModuleInitException);
+DEFINE_EXCEPTION_CONCAT(ModuleLoadException);
+DEFINE_EXCEPTION_CONCAT(ModuleInitException);
+DEFINE_EXCEPTION_CONCAT(PdCreateException);
+DEFINE_EXCEPTION_CONCAT(PdStartException);
+DEFINE_EXCEPTION_CONST_MSG(PdkNotFoundException,
+                           "Protection domain kind not found!");
+DEFINE_EXCEPTION_CONST_MSG(InputStringTooBigException, "Input string too big!");
+DEFINE_EXCEPTION_CONCAT(OutputFileOpenException);
+DEFINE_EXCEPTION_CONCAT(OutputFileException);
+DEFINE_EXCEPTION_CONCAT(InputFileOpenException);
+DEFINE_EXCEPTION_CONCAT(InputFileException);
+DEFINE_EXCEPTION_CONCAT(ProgramLoadException);
 struct GracefulException {};
 struct WriteIntegralArgumentException {};
-SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
-                                     SigEmptySetException,
-                                     "sigemptyset() failed!");
-SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
-                                     SigActionException,
-                                     "sigaction() failed!");
+DEFINE_EXCEPTION_CONST_MSG(SigEmptySetException, "sigemptyset() failed!");
+DEFINE_EXCEPTION_CONST_MSG(SigActionException, "sigaction() failed!");
 
 #define NESTED_THROW_CONCAT_EXCEPTION(Exception,str,...) \
     std::throw_with_nested(Exception{str "!", str ": ", __VA_ARGS__})
@@ -121,9 +118,7 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
 
 char const * programName = nullptr;
 
-SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception,
-                                     InputException,
-                                     "Invalid input to program!");
+DEFINE_EXCEPTION_CONST_MSG(InputException, "Invalid input to program!");
 
 struct InputData {
     virtual ~InputData() noexcept {}
