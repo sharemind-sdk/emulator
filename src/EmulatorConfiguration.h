@@ -22,6 +22,7 @@
 
 #include <exception>
 #include <sharemind/Exception.h>
+#include <sharemind/ExceptionMacros.h>
 #include <sharemind/libconfiguration/Configuration.h>
 #include <string>
 #include <utility>
