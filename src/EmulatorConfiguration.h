@@ -38,18 +38,12 @@ class __attribute__ ((visibility("internal"))) EmulatorConfiguration
 
 public: /* Types: */
 
-    SHAREMIND_DEFINE_EXCEPTION(sharemind::Exception, Exception);
-    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(Exception,
-                                         ParseException,
-                                         "Failed to parse configuration file!");
-    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(
-            Exception,
-            DuplicatePdNameException,
-            "Duplicate protection domain name in configuration!");
-    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(
-            Exception,
-            EmptyPdNameException,
-            "Empty ProtectionDomain name!");
+    SHAREMIND_DECLARE_EXCEPTION_NOINLINE(sharemind::Exception, Exception);
+    SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception, ParseException);
+    SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception,
+                                                   DuplicatePdNameException);
+    SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception,
+                                                   EmptyPdNameException);
 
     struct FacilityModuleEntry {
         std::string filename;

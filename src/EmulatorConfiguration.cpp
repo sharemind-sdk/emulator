@@ -28,6 +28,25 @@
 
 namespace sharemind {
 
+SHAREMIND_DEFINE_EXCEPTION_NOINLINE(sharemind::Exception,
+                                    EmulatorConfiguration::,
+                                    Exception);
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
+        Exception,
+        EmulatorConfiguration::,
+        ParseException,
+        "Failed to parse configuration file!");
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
+        Exception,
+        EmulatorConfiguration::,
+        DuplicatePdNameException,
+        "Duplicate protection domain name in configuration!");
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
+        Exception,
+        EmulatorConfiguration::,
+        EmptyPdNameException,
+        "Empty ProtectionDomain name!");
+
 EmulatorConfiguration::EmulatorConfiguration()
     : Configuration(defaultTryPaths())
 { init(); }
