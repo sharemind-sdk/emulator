@@ -691,7 +691,8 @@ parseCommandLine_xstr:
                         argument);
                 }
             };
-            inputData.writeData((getVal(*str) * 0xf) + getVal(*(str + 1u)));
+            inputData.writeData(static_cast<char>((getVal(*str) * 0xf)
+                                                  + getVal(*(str + 1u))));
         }
         continue;
 
