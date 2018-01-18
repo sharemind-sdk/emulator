@@ -217,7 +217,7 @@ EMULATOR_SYSCALL(Process_setResult, args, num_args, refs, crefs, returnValue, c)
 {
     typedef char const * const CCP;
     if (// Check for four cref arguments:
-        !crefs || (assert(crefs[0u].pData), !crefs[1u].pData)
+        !crefs || (static_cast<void>(assert(crefs[0u].pData)), !crefs[1u].pData)
             || !crefs[2u].pData || !crefs[3u].pData || crefs[4u].pData
         // Check for two arguments:
         || num_args != 2u
