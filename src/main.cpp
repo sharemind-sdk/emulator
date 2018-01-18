@@ -39,6 +39,7 @@
 #include <sharemind/DebugOnly.h>
 #include <sharemind/EndianMacros.h>
 #include <sharemind/Exception.h>
+#include <sharemind/ExceptionMacros.h>
 #include <sharemind/GlobalDeleter.h>
 #include <sharemind/libfmodapi/libfmodapicxx.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
