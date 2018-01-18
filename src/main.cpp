@@ -32,8 +32,9 @@
 #include <list>
 #include <memory>
 #include <sharemind/AccessControlProcessFacility.h>
-#include <sharemind/compiler-support/GccVersion.h>
+#include <sharemind/compiler-support/GccNoreturn.h>
 #include <sharemind/compiler-support/GccPR54277.h>
+#include <sharemind/compiler-support/GccVersion.h>
 #include <sharemind/Concat.h>
 #include <sharemind/Datum.h>
 #include <sharemind/DebugOnly.h>
@@ -76,41 +77,61 @@ char buf8k[buf8k_size];
 SHAREMIND_DECLARE_EXCEPTION_NOINLINE(sharemind::Exception, EmulatorException);
 SHAREMIND_DEFINE_EXCEPTION_NOINLINE(sharemind::Exception,, EmulatorException);
 
-#define DEFINE_EXCEPTION_CONCAT(name) \
-    SHAREMIND_DEFINE_EXCEPTION_CONCAT(EmulatorException, name);
+#define DEFINE_EXCEPTION_STR(name) \
+    SHAREMIND_DECLARE_EXCEPTION_CONST_STDSTRING_NOINLINE(EmulatorException, \
+                                                         name); \
+    SHAREMIND_DEFINE_EXCEPTION_CONST_STDSTRING_NOINLINE(EmulatorException,, \
+                                                        name)
 #define DEFINE_EXCEPTION_CONST_MSG(name, ...) \
-    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(EmulatorException, \
-                                         name, \
-                                         __VA_ARGS__);
-DEFINE_EXCEPTION_CONCAT(UsageException);
-DEFINE_EXCEPTION_CONCAT(FacilityModuleLoadException);
-DEFINE_EXCEPTION_CONCAT(FacilityModuleInitException);
-DEFINE_EXCEPTION_CONCAT(ModuleLoadException);
-DEFINE_EXCEPTION_CONCAT(ModuleInitException);
-DEFINE_EXCEPTION_CONCAT(PdCreateException);
-DEFINE_EXCEPTION_CONCAT(PdStartException);
+    SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(EmulatorException, name); \
+    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(EmulatorException,, \
+                                                  name, \
+                                                  __VA_ARGS__)
+DEFINE_EXCEPTION_STR(UsageException);
+DEFINE_EXCEPTION_STR(FacilityModuleLoadException);
+DEFINE_EXCEPTION_STR(FacilityModuleInitException);
+DEFINE_EXCEPTION_STR(ModuleLoadException);
+DEFINE_EXCEPTION_STR(ModuleInitException);
+DEFINE_EXCEPTION_STR(PdCreateException);
+DEFINE_EXCEPTION_STR(PdStartException);
 DEFINE_EXCEPTION_CONST_MSG(PdkNotFoundException,
                            "Protection domain kind not found!");
 DEFINE_EXCEPTION_CONST_MSG(InputStringTooBigException, "Input string too big!");
-DEFINE_EXCEPTION_CONCAT(OutputFileOpenException);
-DEFINE_EXCEPTION_CONCAT(OutputFileException);
-DEFINE_EXCEPTION_CONCAT(InputFileOpenException);
-DEFINE_EXCEPTION_CONCAT(InputFileException);
-DEFINE_EXCEPTION_CONCAT(ProgramLoadException);
+DEFINE_EXCEPTION_STR(OutputFileOpenException);
+DEFINE_EXCEPTION_STR(OutputFileException);
+DEFINE_EXCEPTION_STR(InputFileOpenException);
+DEFINE_EXCEPTION_STR(InputFileException);
+DEFINE_EXCEPTION_STR(ProgramLoadException);
 struct GracefulException {};
 struct WriteIntegralArgumentException {};
 DEFINE_EXCEPTION_CONST_MSG(SigEmptySetException, "sigemptyset() failed!");
 DEFINE_EXCEPTION_CONST_MSG(SigActionException, "sigaction() failed!");
 
-#define NESTED_THROW_CONCAT_EXCEPTION(Exception,str,...) \
-    std::throw_with_nested(Exception{str "!", str ": ", __VA_ARGS__})
+template <typename Exception, typename ... Args>
+Exception constructConcatException(Args && ... args)
+{ return Exception(concat(std::forward<Args>(args)...)); }
+
+template <typename Exception, typename ... Args>
+SHAREMIND_GCC_NORETURN_PART1
+inline void throwConcatException(Args && ... args) SHAREMIND_GCC_NORETURN_PART2
+{ throw constructConcatException<Exception>(std::forward<Args>(args)...); }
+
+template <typename Exception, typename ... Args>
+SHAREMIND_GCC_NORETURN_PART1
+inline void throwWithNestedConcatException(Args && ... args)
+        SHAREMIND_GCC_NORETURN_PART2
+{
+    std::throw_with_nested(
+                constructConcatException<Exception>(
+                    std::forward<Args>(args)...));
+}
 
 #define NESTED_SYSTEM_ERROR(Exception,str,...) \
     do { \
         try { \
             throw std::system_error{errno, std::system_category()}; \
         } catch (...) { \
-            NESTED_THROW_CONCAT_EXCEPTION(Exception, str, __VA_ARGS__); \
+            throwWithNestedConcatException<Exception>(str, __VA_ARGS__); \
         } \
     } while(false)
 #define NESTED_SYSTEM_ERROR2(...) \
@@ -592,9 +613,8 @@ inline CommandLineArgs parseCommandLine(int const argc,
 
 parseCommandLine_invalid:
 
-        throw UsageException{"Unrecognized argument given!",
-                             "Unrecognized argument given: ",
-                             argv[i]};
+        throwConcatException<UsageException>("Unrecognized argument given: ",
+                                             argv[i]);
 
 parseCommandLine_conf:
 
@@ -636,10 +656,9 @@ parseCommandLine_xstr:
                 case 'A' ... 'F': return (s - 'A') + 0xA;
                 case '0' ... '9': return (s - '0') + 0x0;
                 default:
-                    throw UsageException{
-                        "Invalid --xstr=HEXBYTES argument given!",
+                    throwConcatException<UsageException>(
                         "Invalid --xstr=HEXBYTES argument given: ",
-                        argument};
+                        argument);
                 }
             };
             inputData.writeData((getVal(*str) * 0xf) + getVal(*(str + 1u)));
@@ -651,10 +670,9 @@ parseCommandLine_xstr:
         try { \
             inputData.writeIntegral<std::type ## _t, big>(argument); \
         } catch (WriteIntegralArgumentException const &) { \
-            throw UsageException{ \
-                        "Invalid --" #argname "=VALUE argument given!", \
+            throwConcatException<UsageException>( \
                         "Invalid --" #argname "=VALUE argument given: ", \
-                        argument}; \
+                        argument); \
         } \
         continue;
 
@@ -880,8 +898,7 @@ int main(int argc, char * argv[]) {
                                               fm.filename.c_str(),
                                               fm.configurationFile.c_str()};
                 } catch (...) {
-                    NESTED_THROW_CONCAT_EXCEPTION(
-                                FacilityModuleLoadException,
+                    throwWithNestedConcatException<FacilityModuleLoadException>(
                                 "Failed to load facility module",
                                 fm.filename);
                 }
@@ -889,8 +906,7 @@ int main(int argc, char * argv[]) {
             try {
                 fmodule->init();
             } catch (...) {
-                NESTED_THROW_CONCAT_EXCEPTION(
-                            FacilityModuleInitException,
+                throwWithNestedConcatException<FacilityModuleInitException>(
                             "Failed to initialize facility module",
                             fm.filename);
             }
@@ -901,8 +917,7 @@ int main(int argc, char * argv[]) {
                     return modapi.loadModule(m.filename.c_str(),
                                              m.configurationFile.c_str());
                 } catch (...) {
-                    NESTED_THROW_CONCAT_EXCEPTION(
-                                ModuleLoadException,
+                    throwWithNestedConcatException<ModuleLoadException>(
                                 "Failed to load module",
                                 m.filename);
                 }
@@ -910,8 +925,7 @@ int main(int argc, char * argv[]) {
             try {
                 module.init();
             } catch (...) {
-                NESTED_THROW_CONCAT_EXCEPTION(
-                            ModuleInitException,
+                throwWithNestedConcatException<ModuleInitException>(
                             "Failed to initialize module",
                             m.filename);
             }
@@ -927,8 +941,7 @@ int main(int argc, char * argv[]) {
                                   pd.name.c_str(),
                                   pd.configurationFile.c_str()};
                 } catch (...) {
-                    NESTED_THROW_CONCAT_EXCEPTION(
-                                PdCreateException,
+                    throwWithNestedConcatException<PdCreateException>(
                                 "Failed to create protection domain",
                                 pd.name);
                 }
@@ -936,8 +949,7 @@ int main(int argc, char * argv[]) {
             try {
                 protectionDomain->start();
             } catch (...) {
-                NESTED_THROW_CONCAT_EXCEPTION(
-                            PdStartException,
+                throwWithNestedConcatException<PdStartException>(
                             "Failed to start protection domain",
                             pd.name);
             }
@@ -951,9 +963,9 @@ int main(int argc, char * argv[]) {
         try {
             program.loadFromFile(cmdLine.bytecodeFilename);
         } catch (...) {
-            NESTED_THROW_CONCAT_EXCEPTION(ProgramLoadException,
-                                          "Failed to load program bytecode",
-                                          cmdLine.bytecodeFilename);
+            throwWithNestedConcatException<ProgramLoadException>(
+                        "Failed to load program bytecode",
+                        cmdLine.bytecodeFilename);
         }
 
         int const fd = [&cmdLine] {
