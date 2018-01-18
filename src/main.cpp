@@ -73,10 +73,13 @@ namespace {
 constexpr std::size_t buf8k_size = 8192u;
 char buf8k[buf8k_size];
 
+SHAREMIND_DECLARE_EXCEPTION_NOINLINE(sharemind::Exception, EmulatorException);
+SHAREMIND_DEFINE_EXCEPTION_NOINLINE(sharemind::Exception,, EmulatorException);
+
 #define DEFINE_EXCEPTION_CONCAT(name) \
-    SHAREMIND_DEFINE_EXCEPTION_CONCAT(sharemind::Exception, name);
+    SHAREMIND_DEFINE_EXCEPTION_CONCAT(EmulatorException, name);
 #define DEFINE_EXCEPTION_CONST_MSG(name, ...) \
-    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(sharemind::Exception, \
+    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(EmulatorException, \
                                          name, \
                                          __VA_ARGS__);
 DEFINE_EXCEPTION_CONCAT(UsageException);
