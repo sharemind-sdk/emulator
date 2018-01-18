@@ -73,9 +73,11 @@ constexpr std::size_t buf8k_size = 8192u;
 char buf8k[buf8k_size];
 
 #define DEFINE_EXCEPTION_CONCAT(name) \
-    SHAREMIND_DEFINE_EXCEPTION_CONCAT(std::exception, name);
+    SHAREMIND_DEFINE_EXCEPTION_CONCAT(sharemind::Exception, name);
 #define DEFINE_EXCEPTION_CONST_MSG(name, ...) \
-    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(std::exception, name, __VA_ARGS__);
+    SHAREMIND_DEFINE_EXCEPTION_CONST_MSG(sharemind::Exception, \
+                                         name, \
+                                         __VA_ARGS__);
 DEFINE_EXCEPTION_CONCAT(UsageException);
 DEFINE_EXCEPTION_CONCAT(FacilityModuleLoadException);
 DEFINE_EXCEPTION_CONCAT(FacilityModuleInitException);
