@@ -87,6 +87,12 @@ SHAREMIND_DEFINE_EXCEPTION_NOINLINE(sharemind::Exception,, EmulatorException);
     SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(EmulatorException,, \
                                                   name, \
                                                   __VA_ARGS__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-member-function"
+#endif
 DEFINE_EXCEPTION_STR(UsageException);
 DEFINE_EXCEPTION_STR(FacilityModuleLoadException);
 DEFINE_EXCEPTION_STR(FacilityModuleInitException);
@@ -106,6 +112,11 @@ struct GracefulException {};
 struct WriteIntegralArgumentException {};
 DEFINE_EXCEPTION_CONST_MSG(SigEmptySetException, "sigemptyset() failed!");
 DEFINE_EXCEPTION_CONST_MSG(SigActionException, "sigaction() failed!");
+DEFINE_EXCEPTION_CONST_MSG(InputException, "Invalid input to program!");
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#pragma GCC diagnostic pop
 
 template <typename Exception, typename ... Args>
 Exception constructConcatException(Args && ... args)
@@ -144,8 +155,6 @@ inline void throwWithNestedConcatException(Args && ... args)
     } while(false)
 
 char const * programName = nullptr;
-
-DEFINE_EXCEPTION_CONST_MSG(InputException, "Invalid input to program!");
 
 struct InputData {
     virtual ~InputData() noexcept {}
