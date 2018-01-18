@@ -241,9 +241,11 @@ public: /* Methods: */
     inline std::size_t read(void * buf, std::size_t size) final override {
         assert(size > 0u);
         for (;;) {
-            ssize_t const r = ::read(m_fd, buf, size);
+            auto const r = ::read(m_fd, buf, size);
+            static_assert(std::numeric_limits<decltype(r)>::max()
+                          <= std::numeric_limits<std::size_t>::max(), "");
             if (r >= 0)
-                return r;
+                return static_cast<std::size_t>(r);
             assert(r == -1);
             if ((errno != EAGAIN) && (errno != EINTR))
                 NESTED_SYSTEM_ERROR(InputFileException,
