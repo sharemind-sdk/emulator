@@ -97,10 +97,6 @@ public: /* Methods: */
             const noexcept
     { return m_protectionDomainList; }
 
-private:  /* Methods: */
-
-    void init();
-
 private: /* Fields: */
 
     /** The facility module list: */

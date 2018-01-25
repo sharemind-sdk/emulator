@@ -48,25 +48,17 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
         "Empty ProtectionDomain name!");
 
 EmulatorConfiguration::EmulatorConfiguration()
-    : Configuration(defaultTryPaths())
-{ init(); }
+    : EmulatorConfiguration(defaultTryPaths())
+{}
 
 EmulatorConfiguration::EmulatorConfiguration(std::string const & filename)
-    : Configuration(filename)
-{ init(); }
+    : Configuration(std::vector<std::string>{filename})
+{}
 
 EmulatorConfiguration::EmulatorConfiguration(
         std::vector<std::string> const & tryPaths)
     : Configuration(tryPaths)
-{ init(); }
-
-std::vector<std::string> const & EmulatorConfiguration::defaultTryPaths() {
-    static std::vector<std::string> const tryPaths(
-                Configuration::defaultSharemindToolTryPaths("emulator"));
-    return tryPaths;
-}
-
-void EmulatorConfiguration::init() {
+{
     try {
         // Load module and protection domain lists:
         for (auto const & v : *this) {
@@ -103,6 +95,12 @@ void EmulatorConfiguration::init() {
     } catch (...) {
         std::throw_with_nested(ParseException{});
     }
+}
+
+std::vector<std::string> const & EmulatorConfiguration::defaultTryPaths() {
+    static std::vector<std::string> const tryPaths(
+                Configuration::defaultSharemindToolTryPaths("emulator"));
+    return tryPaths;
 }
 
 } // namespace sharemind {
