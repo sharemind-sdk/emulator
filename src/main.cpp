@@ -930,16 +930,18 @@ int main(int argc, char * argv[]) {
                                               fm.configurationFile.c_str()};
                 } catch (...) {
                     throwWithNestedConcatException<FacilityModuleLoadException>(
-                                "Failed to load facility module",
-                                fm.filename);
+                                "Failed to load facility module \"",
+                                fm.filename,
+                                "\"!");
                 }
             }();
             try {
                 fmodule->init();
             } catch (...) {
                 throwWithNestedConcatException<FacilityModuleInitException>(
-                            "Failed to initialize facility module",
-                            fm.filename);
+                            "Failed to initialize facility module \"",
+                            fm.filename,
+                            "\"!");
             }
         }
         for (auto const & m : conf->moduleList()) {
@@ -949,16 +951,18 @@ int main(int argc, char * argv[]) {
                                              m.configurationFile.c_str());
                 } catch (...) {
                     throwWithNestedConcatException<ModuleLoadException>(
-                                "Failed to load module",
-                                m.filename);
+                                "Failed to load module \"",
+                                m.filename,
+                                "\"!");
                 }
             }();
             try {
                 module.init();
             } catch (...) {
                 throwWithNestedConcatException<ModuleInitException>(
-                            "Failed to initialize module",
-                            m.filename);
+                            "Failed to initialize module \"",
+                            m.filename,
+                            "\"!");
             }
         }
         SHAREMIND_SCOPE_EXIT(while (modapi.numPds() > 0u) delete modapi.pd(0u));
@@ -973,16 +977,18 @@ int main(int argc, char * argv[]) {
                                   pd.configurationFile.c_str()};
                 } catch (...) {
                     throwWithNestedConcatException<PdCreateException>(
-                                "Failed to create protection domain",
-                                pd.name);
+                                "Failed to create protection domain \"",
+                                pd.name,
+                                "\"!");
                 }
             }();
             try {
                 protectionDomain->start();
             } catch (...) {
                 throwWithNestedConcatException<PdStartException>(
-                            "Failed to start protection domain",
-                            pd.name);
+                            "Failed to start protection domain \"",
+                            pd.name,
+                            "\"!");
             }
         }
 
@@ -995,8 +1001,9 @@ int main(int argc, char * argv[]) {
             program.loadFromFile(cmdLine.bytecodeFilename);
         } catch (...) {
             throwWithNestedConcatException<ProgramLoadException>(
-                        "Failed to load program bytecode",
-                        cmdLine.bytecodeFilename);
+                        "Failed to load program bytecode \"",
+                        cmdLine.bytecodeFilename,
+                        "\"!");
         }
 
         int const fd = [&cmdLine] {
