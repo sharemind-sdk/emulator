@@ -16,12 +16,12 @@ use:
                        /path/to/bytecode \\
                        --outFile=/dev/null --forceOutFile
 
-To pass an argument named "arg1" of protection domain "pd_a3p" and type "uint64"
-with a value of 42 to the emulator, one may use
+To pass an argument named "arg1" of protection domain "pd_shared3p" and type
+"uint64" with a value of 42 to the emulator, one may use
 
     sharemind-emulator --conf=/path/to/sharemind-emulator.conf \\
                        /path/to/bytecode \\
-                       --str=arg1 --str=pd_a3p --str=uint64 --size=8 \\
+                       --str=arg1 --str=pd_shared3p --str=uint64 --size=8 \\
                        --uint64=42
 
 To pass the contents of a file as a public string argument, one may use:
@@ -47,4 +47,4 @@ The simple protocol can be described in pseudo-C packed structures as follows:
     char     argumentData[argumentDataSize];
   } arguments[num_arguments];
 
-Little-endian (network order) is assumed for the uint64_t size values.
+Little-endian is assumed for the uint64_t size values.
