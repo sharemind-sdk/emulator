@@ -18,8 +18,7 @@ File = libsharemind_mod_algorithms.so
 File = libsharemind_mod_shared3p_emu.so
 #Configuration =
 
-[ProtectionDomain shared3p]
-Name = pd_shared3p
+[ProtectionDomain pd_shared3p]
 Kind = shared3p
 Configuration = shared3p_emu.cfg
 
