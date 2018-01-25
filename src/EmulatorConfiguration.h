@@ -27,6 +27,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "AccessPolicy.h"
 
 
 namespace sharemind {
@@ -40,6 +41,8 @@ public: /* Types: */
 
     SHAREMIND_DECLARE_EXCEPTION_NOINLINE(sharemind::Exception, Exception);
     SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception, ParseException);
+    SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception,
+                                                   AccessPolicyLoadException);
     SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception,
                                                    DuplicatePdNameException);
     SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception,
@@ -81,10 +84,25 @@ public: /* Methods: */
      */
     EmulatorConfiguration(std::vector<std::string> const & tryPaths);
 
+    std::string const & accessPolicyFilename() const noexcept
+    { return m_accessPolicyFilename; }
+
+    AccessPolicy const & accessPolicy() const noexcept
+    { return m_accessPolicy; }
+
+    std::string const & defaultUser() const noexcept
+    { return m_defaultUser; }
+
     /** \returns a vector of try paths consisting of the XDG configuration paths
                  suffixed with /sharemind/emulator.conf, and the path
                  /etc/sharemind/emulator.conf. */
     static std::vector<std::string> const & defaultTryPaths();
+
+    /** \returns a vector of try paths for the access policy file, consisting of
+                 the XDG configuration paths suffixed with
+                 /sharemind/emulator-access-control.conf, and the path
+                 /etc/sharemind/emulator-access-control.conf. */
+    static std::vector<std::string> const & defaultAccessPolicyTryPaths();
 
     inline std::vector<FacilityModuleEntry> const & facilityModuleList()
             const noexcept
@@ -98,6 +116,12 @@ public: /* Methods: */
     { return m_protectionDomainList; }
 
 private: /* Fields: */
+
+    std::string m_accessPolicyFilename;
+    AccessPolicy m_accessPolicy;
+
+    /** The default user to use for access control. */
+    std::string m_defaultUser;
 
     /** The facility module list: */
     std::vector<FacilityModuleEntry> m_facilityModuleList;

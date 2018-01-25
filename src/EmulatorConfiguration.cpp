@@ -39,6 +39,11 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
 SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
         Exception,
         EmulatorConfiguration::,
+        AccessPolicyLoadException,
+        "Failed to load access policy!");
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
+        Exception,
+        EmulatorConfiguration::,
         DuplicatePdNameException,
         "Duplicate protection domain name in configuration!");
 SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
@@ -58,6 +63,19 @@ EmulatorConfiguration::EmulatorConfiguration(std::string const & filename)
 EmulatorConfiguration::EmulatorConfiguration(
         std::vector<std::string> const & tryPaths)
     : Configuration(tryPaths)
+    , m_accessPolicyFilename(get<std::string>("AccessControl.PoliciesFile", ""))
+    , m_accessPolicy(
+        [this]() {
+            try {
+                if (m_accessPolicyFilename.empty())
+                    return AccessPolicy(defaultAccessPolicyTryPaths());
+                return AccessPolicy(
+                            std::vector<std::string>{m_accessPolicyFilename});
+            } catch (...) {
+                std::throw_with_nested(AccessPolicyLoadException());
+            }
+        }())
+    , m_defaultUser(get<std::string>("AccessControl.DefaultUser"))
 {
     try {
         // Load module and protection domain lists:
@@ -100,6 +118,14 @@ EmulatorConfiguration::EmulatorConfiguration(
 std::vector<std::string> const & EmulatorConfiguration::defaultTryPaths() {
     static std::vector<std::string> const tryPaths(
                 Configuration::defaultSharemindToolTryPaths("emulator"));
+    return tryPaths;
+}
+
+std::vector<std::string> const &
+EmulatorConfiguration::defaultAccessPolicyTryPaths() {
+    static std::vector<std::string> const tryPaths(
+                Configuration::defaultSharemindToolTryPaths(
+                    "emulator-access-control"));
     return tryPaths;
 }
 

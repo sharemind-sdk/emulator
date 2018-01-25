@@ -50,6 +50,7 @@
 #include <sharemind/libvm/Process.h>
 #include <sharemind/MakeUnique.h>
 #include <sharemind/ScopeExit.h>
+#include <sharemind/StringHashTablePredicate.h>
 #include <signal.h>
 #include <sstream>
 #include <string>
@@ -59,6 +60,7 @@
 #include <unistd.h>
 #include <utility>
 #include <vector>
+#include "AccessPolicy.h"
 #include "EmulatorConfiguration.h"
 #include "Syscalls.h"
 
@@ -461,6 +463,7 @@ struct CommandLineArgs {
     bool justExit = false;
     bool haveStdin = false;
     char const * configurationFilename = nullptr;
+    char const * user = nullptr;
     char const * bytecodeFilename = nullptr;
     char const * outFilename = nullptr;
     int outOpenFlag = O_EXCL;
@@ -525,7 +528,10 @@ inline void printUsage() {
          << endl << endl
          << "  --printArgs, -p      Stops processing any further arguments, "
             "outputs the argument stream and exits successfully."
-         << endl << endl;
+         << endl << endl
+         << "  --user, -u           Specifies the user to use for access "
+            "control checks. Overrides the default given by the "
+            "AccessControl.DefaultUser configuration option." << endl << endl;
 }
 
 inline CommandLineArgs parseCommandLine(int const argc,
@@ -562,6 +568,7 @@ inline CommandLineArgs parseCommandLine(int const argc,
 
             switch (opt[0u]) {
                 SHORTOPT_ARG('c', "A -c", "a FILENAME", conf);
+                SHORTOPT_ARG('u', "An -u", "a USERNAME", user);
                 SHORTOPT('h', help);
                 SHORTOPT('V', version);
                 SHORTOPT('t', stdin);
@@ -596,6 +603,7 @@ inline CommandLineArgs parseCommandLine(int const argc,
     } else (void) 0
 
         LONGOPT_ARG("conf", conf);
+        LONGOPT_ARG("user", user);
         LONGOPT("help", help);
         LONGOPT("usage", help);
         LONGOPT("version", version);
@@ -633,6 +641,14 @@ parseCommandLine_conf:
         if (r.configurationFilename)
             throw UsageException{"Multiple --conf=FILENAME arguments given!"};
         r.configurationFilename = argument;
+        continue;
+
+parseCommandLine_user:
+
+        assert(argument);
+        if (r.user)
+            throw UsageException{"Multiple --user=USERNAME arguments given!"};
+        r.user = argument;
         continue;
 
 parseCommandLine_help:
@@ -877,17 +893,41 @@ SharemindProcessFacility vmProcessFacility{
             { return ""; }
 };
 
-class DummyAccessControlProcessFacility final
+class AccessControlProcessFacilityImpl final
         : public sharemind::AccessControlProcessFacility
 {
 
-    AccessResult checkWithPredicates(
-            PreparedPredicate const &,
-            PreparedPredicate const * const *,
-            std::size_t size) const final override
-    { return (size == 0u) ? AccessResult::Unspecified : AccessResult::Allowed; }
+public: /* Types: */
 
-} dummyAccessControlProcessFacility;
+    using ObjectPermissionsNamespaces =
+            AccessPolicy::ObjectPermissionsNamespaces;
+
+public: /* Methods: */
+
+    AccessControlProcessFacilityImpl(EmulatorConfiguration const & conf,
+                                     std::string const & user) noexcept
+        : m_perms(
+            [&conf, &user]() noexcept {
+                auto const & userMapping = conf.accessPolicy().userMapping();
+                auto const it = userMapping.find(user);
+                return (it != userMapping.end()) ? it->second : nullptr;
+            }())
+    {}
+
+    std::shared_ptr<ObjectPermissions const> getCurrentPermissions(
+            PreparedPredicate const & rulesetNamePredicate) const final override
+    {
+        auto const it = m_perms->find(rulesetNamePredicate);
+        if (it == m_perms->end())
+            return nullptr;
+        return std::shared_ptr<ObjectPermissions const>(m_perms, &it->second);
+    }
+
+private: /* Fields: */
+
+    std::shared_ptr<ObjectPermissionsNamespaces> m_perms;
+
+};
 
 void * vmFindProcessFacility(std::string const & name) noexcept
 { return (name == "ProcessFacility") ? &vmProcessFacility : nullptr; }
@@ -922,6 +962,10 @@ int main(int argc, char * argv[]) {
                     ? makeUnique<EmulatorConfiguration>(
                           cmdLine.configurationFilename)
                     : makeUnique<EmulatorConfiguration>());
+        AccessControlProcessFacilityImpl aclFacility(*conf,
+                                                     cmdLine.user
+                                                     ? cmdLine.user
+                                                     : conf->defaultUser());
         for (auto const & fm : conf->facilityModuleList()) {
             FacilityModule * const fmodule = [&]() {
                 try {
@@ -1040,8 +1084,7 @@ int main(int argc, char * argv[]) {
             FacilityModulePis pis(fmodapi, ctx);
             process.setInternal(&vmProcessFacility);
             process.setPdpiFacility("ProcessFacility", &vmProcessFacility);
-            process.setFacility("AccessControlProcessFacility",
-                                &dummyAccessControlProcessFacility);
+            process.setFacility("AccessControlProcessFacility", &aclFacility);
 
             try {
                 process.run();
