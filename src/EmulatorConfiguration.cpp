@@ -52,7 +52,7 @@ EmulatorConfiguration::EmulatorConfiguration()
 {}
 
 EmulatorConfiguration::EmulatorConfiguration(std::string const & filename)
-    : Configuration(std::vector<std::string>{filename})
+    : EmulatorConfiguration(std::vector<std::string>{filename})
 {}
 
 EmulatorConfiguration::EmulatorConfiguration(
