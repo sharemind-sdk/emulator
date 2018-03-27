@@ -1055,10 +1055,10 @@ int main(int argc, char * argv[]) {
                 assert(processResultsStream == STDOUT_FILENO);
                 return -1;
             }
-            int const fd = openOutFile(cmdLine.outFilename,
-                                       cmdLine.outOpenFlag);
-            processResultsStream = fd;
-            return fd;
+            int const fd_ = openOutFile(cmdLine.outFilename,
+                                        cmdLine.outOpenFlag);
+            processResultsStream = fd_;
+            return fd_;
         }();
         SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));
 
@@ -1066,13 +1066,13 @@ int main(int argc, char * argv[]) {
             Process process(program);
             FacilityModulePis::Context ctx{
                 &process,
-                [](FacilityModulePis::Context * const ctx,
+                [](FacilityModulePis::Context * const ctx_,
                    char const * const name,
                    void * const facility)
                 {
-                    assert(ctx);
-                    assert(ctx->context);
-                    auto & p = *static_cast<Process *>(ctx->context);
+                    assert(ctx_);
+                    assert(ctx_->context);
+                    auto & p = *static_cast<Process *>(ctx_->context);
                     try {
                         p.setFacility(name, facility);
                         return true;
