@@ -36,6 +36,7 @@
 #include <sharemind/compiler-support/GccPR54277.h>
 #include <sharemind/compiler-support/GccVersion.h>
 #include <sharemind/Concat.h>
+#include <sharemind/Concepts.h>
 #include <sharemind/Datum.h>
 #include <sharemind/DebugOnly.h>
 #include <sharemind/EndianMacros.h>
@@ -534,6 +535,40 @@ inline void printUsage() {
             "AccessControl.DefaultUser configuration option." << endl << endl;
 }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-template"
+#endif
+SHAREMIND_DEFINE_CONCEPT(UnsignedCanHoldUnsigned) {
+    template <typename T, typename U>
+    auto check(T &&, U &&) ->
+            SHAREMIND_REQUIRE(
+                std::numeric_limits<typename std::decay<T>::type>::max()
+                >= std::numeric_limits<typename std::decay<U>::type>::max());
+};
+
+template <typename SizeType>
+inline auto argumentSizeCheck(SizeType const) noexcept
+        -> SHAREMIND_REQUIRE_CONCEPTS_R(
+                void,
+                Unsigned(SizeType),
+                UnsignedCanHoldUnsigned(std::uint64_t, SizeType))
+{}
+
+template <typename SizeType>
+inline auto argumentSizeCheck(SizeType const size)
+        -> SHAREMIND_REQUIRE_CONCEPTS_R(
+                void,
+                Unsigned(SizeType),
+                Not(UnsignedCanHoldUnsigned(std::uint64_t, SizeType)))
+{
+    if (size > std::numeric_limits<std::uint64_t>::max())
+        throw InputStringTooBigException();
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 inline CommandLineArgs parseCommandLine(int const argc,
                                         char const * const argv[])
 {
@@ -747,8 +782,7 @@ parseCommandLine_str:
 
         {
             auto const size = strlen(argument);
-            if (size > std::numeric_limits<std::uint64_t>::max())
-                throw InputStringTooBigException{};
+            argumentSizeCheck(size);
             inputData.writeIntegral(static_cast<std::uint64_t>(size));
             if (size > 0u)
                 inputData.writeData(argument, argument + size);
