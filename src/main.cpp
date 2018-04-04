@@ -951,6 +951,8 @@ public: /* Methods: */
     std::shared_ptr<ObjectPermissions const> getCurrentPermissions(
             PreparedPredicate const & rulesetNamePredicate) const final override
     {
+        if (!m_perms)
+            return nullptr;
         auto const it = m_perms->find(rulesetNamePredicate);
         if (it == m_perms->end())
             return nullptr;
