@@ -91,7 +91,8 @@ FILE(GLOB_RECURSE SharemindEmulator_DOCS
      "${CMAKE_CURRENT_SOURCE_DIR}/doc/*")
 ADD_CUSTOM_TARGET("include_SharemindEmulator_docs_in_IDE"
                   SOURCES ${SharemindEmulator_DOCS})
-INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/doc/emulator.cfg.example"
+INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/doc/emulator.conf.example"
+              "${CMAKE_CURRENT_SOURCE_DIR}/doc/emulator-access-control.conf.example"
         DESTINATION "share/doc/sharemind-emulator-${SharemindEmulator_VERSION}"
         COMPONENT "bin")
 
