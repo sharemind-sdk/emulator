@@ -1,3 +1,10 @@
+[AccessControl]
+
+; Path to the file specifying access rulesets:
+PoliciesFile = %{CurrentFileDirectory}/emulator-access-control.conf
+; User that is running the emulator
+DefaultUser = DebugUser
+
 [FacilityModule loghard]
 File = libsharemind_facility_loghard.so
 Configuration = backend logger [Emulator] module Logger stderr

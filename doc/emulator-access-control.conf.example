@@ -1,0 +1,116 @@
+;
+; Access policy files consist of user definitions and access rules.
+;
+
+;
+; Each user is specified in a separate User section, with the user name or
+; alias specified in the section name, i.e. "[User username]", where "username"
+; is the user name.
+;
+; The TlsPublicKey field specifies the filesystem path for the public key used
+; to authenticate the user.
+;
+
+[User DebugUser]
+TlsPublicKeyFile = %{CurrentFileDirectory}/client-public-key
+
+
+;
+; Access rules are grouped under access policy rulesets which act as namespaces.
+; The name of the ruleset is specified in the Ruleset section name.
+;
+; Each rule is a pair in the form of "object=spec", where object is the entity
+; which represents the resource to which access is controlled, and "spec" is an
+; access specification representing a set of subjects (i.e. users) separated by
+; whitespace and commas to whom the access specification either explicitly
+; grants or denies access:
+;
+;   * Subjects in the access specification prefixed with an exclamation mark
+;     ('!') are explicitly DENIED access.
+;   * Subjects in the access specification not prefixed with an exclamation mark
+;     ('!') are explicitly ALLOWED access.
+;   * For subjects not listed in the access specification, access in this
+;     distinct rule is left UNSPECIFIED (see below for handling of UNSPECIFIED).
+;
+; Subjects in the access specification are separated by whitespace and commas,
+; the latter of which are actually also considered to be whitespace, e.g
+; ",,user1,,,!user2," is a valid access specification, with access ALLOWED for
+; user1 and DENIED for user2. Note however, that subjects may not contain
+; exclamation marks, and no whitespace is allowed between an exclamation mark
+; and the subject.
+;
+; Components enforcing the access control for an object may check multiple rules
+; if needed. If any of the rules checked explicitly DENY access for the subject,
+; access is denied. Otherwise, if any of the rules checked explicitly ALLOW
+; access for the subject, access is allowed. Otherwise, i.e. if access is not
+; explicitly specified (i.e. the subject is UNSPECIFIED in all rules), access is
+; denied.
+;
+; For one such example, in the sharemind:server ruleset, when a subject attempts
+; to execute a program "test.sb", two rules are checked: "execute:*" and
+; "execute:test.sb", and access is allowed only if the subject is allowed in
+; at least one, and not denied in either of those rules.
+;
+
+[Ruleset sharemind:server]
+
+; The syntax is
+;     execute:<program>
+; where <program> is a SecreC bytecode filename or a wildcard (*) for matching
+; any program.
+
+; Example: allow running all SecreC programs except `denied.sb` for DebugUser:
+execute:* = DebugUser
+execute:denied.sb = !DebugUser
+
+[Ruleset sharemind:tabledb]
+
+; The mod_tabledb system calls check authorization on one or two levels. The
+; first of these levels is the datastore level is used by all system
+; calls. Its object format is
+;     <datastore>:<program>
+; where <datastore> is the identifier of the data store being accessed or a
+; wildcard (*) for matching any datastore, and <program> is the SecreC bytecode
+; filename or a wildcard (*) for matching any program.
+
+; Example: allow all datastore level operations on all datastores for DebugUser:
+*:* = DebugUser
+
+; The mod_tabledb system calls which require authorization checks of two levels,
+; the second level is the table and operation level with the object format
+;     <datastore>:<table>:<operation>:<program>
+; where <datastore> and <program> used just as on the first level, <table> is
+; the name of the table accessed by the system call or a wildcard (*) for
+; matching any table, and <operation> is either read or write for read and
+; write access respectively, or a wildcard (*) matching both read and write
+; access.
+
+; Example: allow everything for DebugUser:
+*:*:*:* = DebugUser
+
+; Example: read-write permission for `table` in `DS1`:
+;DS1:table:*:program1.sb = DebugUser
+
+; Example: revoke write access to `table` in `DS1` in all SecreC programs:
+;DS1:table:write:* = !DebugUser
+
+
+[Ruleset sharemind:keydb]
+
+; The syntax for mod_keydb object names is
+;     <pattern>:scan:<program>
+;     <key_name>:read:<program>
+;     <key_name>:write:<program>
+; where each <pattern>, <key_name> and <program> can also be a wildcard ('*').
+
+; Access to individual keys must be given explicitly:
+;org_management_salary_john:read:financials.sb = DebugUser
+
+; Scan access can use patterns, but it has to be exactly the same as passed to
+; the syscall:
+;org_sales_*:scan:financials.sb = DebugUser
+
+; Example: allow all operations on all keys:
+*:scan:* = DebugUser
+*:read:* = DebugUser
+*:write:* = DebugUser
