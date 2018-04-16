@@ -682,7 +682,7 @@ inline CommandLineArgs parseCommandLine(int const argc,
         LONGOPT("printArgs", printArgs);
         LONGOPT("force", force);
         LONGOPT("append", append);
-        LONGOPT_ARG("discard", discard);
+        LONGOPT("discard", discard);
 
 parseCommandLine_invalid:
 
