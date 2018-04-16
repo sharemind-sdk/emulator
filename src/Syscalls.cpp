@@ -205,7 +205,7 @@ EMULATOR_SYSCALL(Process_argument) {
         Vm::ConstReference const & cref;
     };
     auto const it = processArguments.find(MyStringRange{crefs[0u]});
-    if (it != processArguments.end())
+    if (it == processArguments.end())
         throw ArgumentNotFoundException(
                     std::string(static_cast<char const *>(crefs[0u].data.get()),
                                 crefs[0u].size - 1u));
