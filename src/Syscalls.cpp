@@ -23,19 +23,83 @@
 #include <cstdint>
 #include <limits>
 #include <iostream>
+#include <sharemind/AssertReturn.h>
 #include <sharemind/EndianMacros.h>
-#include <sharemind/FunctionAttributes.h>
+#include <sharemind/Exception.h>
+#include <sharemind/ExceptionMacros.h>
 #include <sharemind/MicrosecondTime.h>
 #include <sharemind/Random/CryptographicRandom.h>
 #include <system_error>
+#include <type_traits>
 #include <unistd.h>
 #include "Syscalls.h"
 
+#define EMULATOR_SYSCALL(name) \
+    void name( \
+            std::vector<::SharemindCodeBlock> & args, \
+            std::vector<Vm::Reference> & refs, \
+            std::vector<Vm::ConstReference> & crefs, \
+            SharemindCodeBlock * const returnValue, \
+            Vm::SyscallContext & c)
 
-#define EMULATOR_SYSCALL(...) \
-    SHAREMIND_HIDDEN_FUNCTION(SHAREMIND_MODULE_API_0x1_SYSCALL(__VA_ARGS__))
+#define PASS_SYSCALL(name, to) \
+    EMULATOR_SYSCALL(name) { return (to)(args, refs, crefs, returnValue, c); }
 
 namespace sharemind {
+namespace {
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused"
+#pragma GCC diagnostic ignored "-Wunused-function"
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-member-function"
+#endif
+class ArgumentNotFoundException: public Exception {
+
+public: /* Methods: */
+
+    template <typename ArgumentName>
+    ArgumentNotFoundException(ArgumentName && argumentName)
+        : m_message(
+              std::make_shared<std::string>(
+                  concat("Argument \"",
+                         std::forward<ArgumentName>(argumentName),
+                         "\" not found!")))
+    {}
+
+    ArgumentNotFoundException(ArgumentNotFoundException &&)
+            noexcept(std::is_nothrow_move_constructible<Exception>::value) =
+                    default;
+    ArgumentNotFoundException(ArgumentNotFoundException const &)
+            noexcept(std::is_nothrow_copy_constructible<Exception>::value) =
+                    default;
+
+    ArgumentNotFoundException & operator=(ArgumentNotFoundException &&)
+            noexcept(std::is_nothrow_move_assignable<Exception>::value) =
+                    default;
+    ArgumentNotFoundException & operator=(ArgumentNotFoundException const &)
+            noexcept(std::is_nothrow_copy_assignable<Exception>::value) =
+                    default;
+
+    char const * what() const noexcept final override
+    { return assertReturn(m_message)->c_str(); }
+
+private: /* Fields: */
+
+    std::shared_ptr<std::string const> m_message;
+
+};
+SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception, InvalidCallException);
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
+        Exception,,
+        InvalidCallException,
+        "Invalid arguments, references, constant references or return value "
+        "specified for system call!")
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#pragma GCC diagnostic pop
 
 inline void writeData(int const outFd, char const * buf, std::size_t size) {
     if (size > 0u) {
@@ -72,57 +136,31 @@ inline void writeDataWithSize(int const outFd,
     writeData(outFd, data, size);
 }
 
-SimpleUnorderedStringMap<Datum> processArguments;
-int processResultsStream = STDOUT_FILENO;
-
 /* Mandatory ref parameter: output buffer */
-SHAREMIND_HIDDEN_FUNCTION(
 template <void (*F)(void * buf, std::size_t bufSize) noexcept>
-SHAREMIND_MODULE_API_0x1_SYSCALL(blockingRandomize_,
-                                 args, num_args, refs, crs,
-                                 returnValue, c))
-{
+EMULATOR_SYSCALL(blockingRandomize_) {
     (void) c;
-    (void) args;
+    if (!crefs.empty() || returnValue || args.empty() || refs.size() != 1u)
+        throw InvalidCallException();
 
-    if (crs // Check for 0 cref arguments
-        || returnValue || num_args // Check for return value, and no arguments
-        || !refs || refs[1u].pData) // Check for 1 ref arguments
-        return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
-
-    (*F)(refs[0u].pData, refs[0u].size);
-    return SHAREMIND_MODULE_API_0x1_OK;
+    (*F)(refs[0u].data.get(), refs[0u].size);
 }
 
 /* Mandatory ref parameter: output buffer
    Return value: Number of bytes of randomness written to buffer. */
-SHAREMIND_HIDDEN_FUNCTION(
 template <std::size_t (*F)(void * buf, std::size_t bufSize) noexcept>
-SHAREMIND_MODULE_API_0x1_SYSCALL(nonblockingRandomize_,
-                                 args, num_args, refs, crs,
-                                 returnValue, c))
-{
+EMULATOR_SYSCALL(nonblockingRandomize_) {
     (void) c;
-    (void) args;
 
-    if (crs // Check for 0 cref arguments
-        || !returnValue || num_args // Check for return value, and no arguments
-        || !refs || refs[1u].pData) // Check for 1 ref arguments
-        return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
+    if (!crefs.empty() || !returnValue || !args.empty() || refs.size() != 1u)
+        throw InvalidCallException();
 
-    auto const r((*F)(refs[0u].pData, refs[0u].size));
+    auto const r((*F)(refs[0u].data.get(), refs[0u].size));
     assert(r <= refs[0u].size);
     static_assert(std::numeric_limits<decltype(r)>::max()
                   <= std::numeric_limits<std::uint64_t>::max(), "");
     returnValue->uint64[0u] = r;
-    return SHAREMIND_MODULE_API_0x1_OK;
 }
-
-extern "C" {
-
-#define PASS_SYSCALL(name, to) \
-    EMULATOR_SYSCALL(name, args, num_args, refs, crefs, ret, c)\
-    { return (to)(args, num_args, refs, crefs, ret, c); }
 
 PASS_SYSCALL(blockingRandomize,
              blockingRandomize_<sharemind::cryptographicRandom>);
@@ -133,18 +171,13 @@ PASS_SYSCALL(nonblockingRandomize,
 PASS_SYSCALL(nonblockingURandomize,
              nonblockingRandomize_<sharemind::cryptographicURandomNonblocking>);
 
-EMULATOR_SYSCALL(Process_logMicroseconds, args, num_args, refs, crefs,
-                 returnValue, c)
-{
+EMULATOR_SYSCALL(Process_logMicroseconds) {
     (void) args;
-    (void) num_args;
     (void) refs;
     (void) crefs;
     (void) returnValue;
-    assert(c);
     (void) c;
-    std::cerr << "Global time is " << getUsTime() << " us."<< std::endl;
-    return SHAREMIND_MODULE_API_0x1_OK;
+    std::cerr << "Global time is " << getUsTime() << " us." << std::endl;
 }
 
 /*
@@ -152,55 +185,40 @@ EMULATOR_SYSCALL(Process_logMicroseconds, args, num_args, refs, crefs,
   Optional ref parameter: argument data buffer
   Return value: argument data length
 */
-EMULATOR_SYSCALL(Process_argument, args, num_args, refs, crs, returnValue, c) {
-    (void) args;
-
-    if (!crs || crs[1u].pData // Check for one cref argument
-        || !returnValue || num_args // Check for return value, and no arguments
-        || (refs && refs[1u].pData) // Check for < 2 ref arguments
-        || crs[0u].size == 0u
-        || static_cast<char const *>(crs[0u].pData)[crs[0u].size - 1u]!= '\0')
+EMULATOR_SYSCALL(Process_argument) {
+    if ((crefs.size() != 1u) || !returnValue || !args.empty()
+        || (refs.size() > 1u)
+        || (crefs[0u].size == 0u)
+        || static_cast<char const *>(crefs[0u].data.get())[crefs[0u].size - 1u]!= '\0')
     {
-        return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
+        throw InvalidCallException();
     }
 
-    assert(c);
     (void) c;
 
-    try {
-        struct MyStringRange {
-            char const * begin() const noexcept
-            { return static_cast<char const *>(cref.pData); }
-            char const * end() const noexcept
-            { return static_cast<char const *>(cref.pData) + cref.size - 1u; }
+    struct MyStringRange {
+        char const * begin() const noexcept
+        { return static_cast<char const *>(cref.data.get()); }
+        char const * end() const noexcept
+        { return static_cast<char const *>(cref.data.get()) + cref.size - 1u; }
 
-            SharemindModuleApi0x1CReference const & cref;
-        };
-        auto const it = processArguments.find(MyStringRange{crs[0u]});
-        if (it != processArguments.end()) {
-            std::string const argumentName{
-                        static_cast<char const *>(crs[0u].pData),
-                        crs[0u].size - 1u};
-            std::cerr << "Argument \"" << argumentName << "\" not found!"
-                      << std::endl;
-            return SHAREMIND_MODULE_API_0x1_GENERAL_ERROR;
-        }
+        Vm::ConstReference const & cref;
+    };
+    auto const it = processArguments.find(MyStringRange{crefs[0u]});
+    if (it != processArguments.end())
+        throw ArgumentNotFoundException(
+                    std::string(static_cast<char const *>(crefs[0u].data.get()),
+                                crefs[0u].size - 1u));
 
-        auto const & argument = it->second;
-        std::size_t const argSize = argument.size();
-        returnValue->uint64[0u] = argSize;
-        if (refs) {
-            assert(refs[0u].size > 0u);
-            std::size_t const toCopy = std::min(refs[0u].size, argSize);
-            std::copy(static_cast<char const *>(argument.constData()),
-                      static_cast<char const *>(argument.constData()) + toCopy,
-                      static_cast<char *>(refs[0u].pData));
-        }
-        return SHAREMIND_MODULE_API_0x1_OK;
-    } catch (std::bad_alloc const &) {
-        return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
-    } catch (...) {
-        return SHAREMIND_MODULE_API_0x1_MODULE_ERROR;
+    auto const & argument = it->second;
+    std::size_t const argSize = argument.size();
+    returnValue->uint64[0u] = argSize;
+    if (!refs.empty()) {
+        assert(refs[0u].size > 0u);
+        std::size_t const toCopy = std::min(refs[0u].size, argSize);
+        std::copy(static_cast<char const *>(argument.constData()),
+                  static_cast<char const *>(argument.constData()) + toCopy,
+                  static_cast<char *>(refs[0u].data.get()));
     }
 }
 
@@ -213,118 +231,122 @@ EMULATOR_SYSCALL(Process_argument, args, num_args, refs, crs, returnValue, c) {
   Mandatory stack argument: end index in data
   No return value
 */
-EMULATOR_SYSCALL(Process_setResult, args, num_args, refs, crefs, returnValue, c)
-{
+EMULATOR_SYSCALL(Process_setResult) {
     typedef char const * const CCP;
-    if (// Check for four cref arguments:
-        !crefs || (static_cast<void>(assert(crefs[0u].pData)), !crefs[1u].pData)
-            || !crefs[2u].pData || !crefs[3u].pData || crefs[4u].pData
-        // Check for two arguments:
-        || num_args != 2u
-        // Check for no return value, no refs:
-        || returnValue || refs
-        // Check cref sizes:
+    if ((crefs.size() != 4u) || (args.size() != 2u) || returnValue
+        || !refs.empty()
         || crefs[0u].size == 0u || crefs[1u].size == 0u || crefs[2u].size == 0u
-        || static_cast<CCP>(crefs[0u].pData)[crefs[0u].size - 1u] != '\0'
-        || static_cast<CCP>(crefs[1u].pData)[crefs[1u].size - 1u] != '\0'
-        || static_cast<CCP>(crefs[2u].pData)[crefs[2u].size - 1u] != '\0')
+        || static_cast<CCP>(crefs[0u].data.get())[crefs[0u].size - 1u] != '\0'
+        || static_cast<CCP>(crefs[1u].data.get())[crefs[1u].size - 1u] != '\0'
+        || static_cast<CCP>(crefs[2u].data.get())[crefs[2u].size - 1u] != '\0')
     {
-        return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
+        throw InvalidCallException();
     }
 
     std::uint64_t const begin = args[0u].uint64[0u];
     std::uint64_t const end = args[1u].uint64[0u];
 
     if (begin > end || end > crefs[3u].size)
-        return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
+        throw InvalidCallException();
 
-    assert(c);
     (void) c;
-    try {
-        writeDataWithSize(processResultsStream,
-                          static_cast<char const *>(crefs[0u].pData),
-                          crefs[0u].size - 1u);
-        writeDataWithSize(processResultsStream,
-                          static_cast<char const *>(crefs[1u].pData),
-                          crefs[1u].size - 1u);
-        writeDataWithSize(processResultsStream,
-                          static_cast<char const *>(crefs[2u].pData),
-                          crefs[2u].size - 1u);
-        writeDataWithSize(processResultsStream,
-                          static_cast<char const *>(crefs[3u].pData) + begin,
-                          end - begin);
-        return SHAREMIND_MODULE_API_0x1_OK;
-    } catch (std::bad_alloc const &) {
-        return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
-    } catch (...) {
-        return SHAREMIND_MODULE_API_0x1_MODULE_ERROR;
-    }
+    writeDataWithSize(processResultsStream,
+                      static_cast<char const *>(crefs[0u].data.get()),
+                      crefs[0u].size - 1u);
+    writeDataWithSize(processResultsStream,
+                      static_cast<char const *>(crefs[1u].data.get()),
+                      crefs[1u].size - 1u);
+    writeDataWithSize(processResultsStream,
+                      static_cast<char const *>(crefs[2u].data.get()),
+                      crefs[2u].size - 1u);
+    writeDataWithSize(processResultsStream,
+                      static_cast<char const *>(crefs[3u].data.get()) + begin,
+                      end - begin);
 }
 
-EMULATOR_SYSCALL(Process_logString, args, num_args, refs, crefs, returnValue, c)
-{
-    (void) args;
+EMULATOR_SYSCALL(Process_logString) {
+    if ((crefs.size() != 1u) || !args.empty() || !refs.empty() || returnValue)
+        throw InvalidCallException();
 
-    if (!crefs // Mandatory checks
-        || num_args || refs || returnValue // Optional checks
-        || crefs[1u].pData) // Optional checks
-    {
-        return SHAREMIND_MODULE_API_0x1_INVALID_CALL;
-    }
-
-    assert(c);
     (void) c;
 
     if (crefs[0u].size == std::numeric_limits<std::size_t>::max())
-        return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
+        throw std::bad_array_new_length();
 
-    try {
-        std::string buffer;
-        buffer.reserve(crefs[0u].size + 1u);
+    std::string buffer;
+    buffer.reserve(crefs[0u].size + 1u);
 
-        char const * sstart = static_cast<char const *>(crefs[0u].pData);
-        char const * scur = sstart;
-        char const * ssend = sstart + crefs[0u].size;
-        std::size_t slen = 0u;
-        while (scur != ssend) {
-            switch (*scur) {
-                case '\n':
+    char const * sstart = static_cast<char const *>(crefs[0u].data.get());
+    char const * scur = sstart;
+    char const * ssend = sstart + crefs[0u].size;
+    std::size_t slen = 0u;
+    while (scur != ssend) {
+        switch (*scur) {
+            case '\n':
+                buffer.assign(sstart, slen);
+                std::cerr << buffer << std::endl;
+                sstart = ++scur;
+                slen = 0u;
+                break;
+            case '\0':
+                if (slen > 0u) {
                     buffer.assign(sstart, slen);
                     std::cerr << buffer << std::endl;
-                    sstart = ++scur;
-                    slen = 0u;
-                    break;
-                case '\0':
-                    if (slen > 0u) {
-                        buffer.assign(sstart, slen);
-                        std::cerr << buffer << std::endl;
-                    }
-                    return SHAREMIND_MODULE_API_0x1_OK;
-                default:
-                    slen++;
-                    scur++;
-                    break;
-            }
+                }
+                return;
+            default:
+                slen++;
+                scur++;
+                break;
         }
-        if (slen > 0u) {
-            buffer.assign(sstart, slen);
-            std::cerr << buffer << std::endl;
-        }
-        return SHAREMIND_MODULE_API_0x1_OK;
-    } catch (std::bad_alloc const &) {
-        return SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY;
-    } catch (...) {
-        return SHAREMIND_MODULE_API_0x1_MODULE_ERROR;
+    }
+    if (slen > 0u) {
+        buffer.assign(sstart, slen);
+        std::cerr << buffer << std::endl;
     }
 }
 
-} // extern "C"
+using SyscallFunctionPtr =
+        void (*)(
+                std::vector<::SharemindCodeBlock> & arguments,
+                std::vector<Vm::Reference> & references,
+                std::vector<Vm::ConstReference> & constReferences,
+                SharemindCodeBlock * returnValue,
+                Vm::SyscallContext & context);
 
-#define BINDING_INIT(f) { #f, { &(f), nullptr } }
+template <SyscallFunctionPtr F>
+class SyscallWrapper final: public Vm::SyscallWrapper {
 
-std::map<std::string, SharemindSyscallWrapper const> const
-    staticSyscallWrappers
-{
+public: /* Methods: */
+
+    void operator()(
+            std::vector<::SharemindCodeBlock> & arguments,
+            std::vector<Vm::Reference> & references,
+            std::vector<Vm::ConstReference> & constReferences,
+            SharemindCodeBlock * returnValue,
+            Vm::SyscallContext & context) const final override
+    {
+        return (*F)(arguments,
+                    references,
+                    constReferences,
+                    returnValue,
+                    context);
+    }
+
+};
+
+template <SyscallFunctionPtr F>
+std::shared_ptr<Vm::SyscallWrapper> createSyscallWrapper()
+{ return std::make_shared<SyscallWrapper<F> >(); }
+
+} // anonymous namespace
+
+SimpleUnorderedStringMap<Datum> processArguments;
+int processResultsStream = STDOUT_FILENO;
+
+#define BINDING_INIT(f) { #f, createSyscallWrapper<&f>() }
+
+SimpleUnorderedStringMap<std::shared_ptr<Vm::SyscallWrapper> > syscallWrappers {
     BINDING_INIT(blockingRandomize),
     BINDING_INIT(blockingURandomize),
     BINDING_INIT(nonblockingRandomize),

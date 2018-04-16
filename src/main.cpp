@@ -18,6 +18,7 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -116,6 +117,25 @@ struct WriteIntegralArgumentException {};
 DEFINE_EXCEPTION_CONST_MSG(SigEmptySetException, "sigemptyset() failed!");
 DEFINE_EXCEPTION_CONST_MSG(SigActionException, "sigaction() failed!");
 DEFINE_EXCEPTION_CONST_MSG(InputException, "Invalid input to program!");
+DEFINE_EXCEPTION_CONST_MSG(ModuleImplementationLimitsReachedException,
+                           "Module implementation limits reached!");
+DEFINE_EXCEPTION_CONST_MSG(ModuleErrorException, "Programming fault in the module!");
+DEFINE_EXCEPTION_CONST_MSG(ModuleGeneralErrorException,
+                           "General runtime error in the module!");
+DEFINE_EXCEPTION_CONST_MSG(ModuleInvalidCallException,
+                           "The system call was called improperly by the "
+                           "bytecode!");
+DEFINE_EXCEPTION_CONST_MSG(ModuleMissingFacilityException,
+                           "A required facility was not provided by "
+                           "Sharemind!");
+DEFINE_EXCEPTION_CONST_MSG(ModuleInvalidPdConfiguration,
+                           "The protection domain configuration given was "
+                           "invalid or erroneous!");
+DEFINE_EXCEPTION_CONST_MSG(ModuleInvalidModuleConfiguration,
+                           "The module configuration given was invalid or "
+                           "erroneous!");
+DEFINE_EXCEPTION_CONST_MSG(ModuleAccessDeniedException,
+                           "Access denied by module!");
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -894,12 +914,168 @@ ModuleApi modapi{[](char const * const signature)
 
 std::uint64_t const localPid = 0u;
 
-SharemindSyscallWrapper vmFindSyscall(std::string const & name) noexcept {
-    auto const it = staticSyscallWrappers.find(name);
-    if (it != staticSyscallWrappers.end())
-        return it->second;
-    return modapi.syscallWrapper(name.c_str());
-}
+class OldSyscallContext final: public SharemindModuleApi0x1SyscallContext {
+
+public: /* Types: */
+
+    using PublicMemoryPointer = Vm::SyscallContext::PublicMemoryPointer;
+
+public: /* Methods: */
+
+    OldSyscallContext(Vm::SyscallContext & context, void * moduleHandle)
+        : SharemindModuleApi0x1SyscallContext{
+              &context,
+              context.processInternal(),
+              moduleHandle,
+              &get_pdpi_info,
+              &processFacility,
+              &publicAlloc,
+              &publicFree,
+              &publicMemPtrSize,
+              &publicMemPtrData,
+              &allocPrivate,
+              &freePrivate,
+              &reservePrivate,
+              &releasePrivate}
+    {}
+
+    static SharemindModuleApi0x1PdpiInfo const * get_pdpi_info(
+            SharemindModuleApi0x1SyscallContext * c,
+            std::uint64_t pd_index)
+    { return fromC(c).pdpiInfo(pd_index); }
+
+    static void * processFacility(
+            SharemindModuleApi0x1SyscallContext const * c,
+            char const * facilityName)
+    { return fromC(c).processFacility(facilityName); }
+
+    static std::uint64_t publicAlloc(SharemindModuleApi0x1SyscallContext * c,
+                                     std::uint64_t nBytes)
+    { return fromC(c).publicAlloc(nBytes).ptr; }
+
+    static bool publicFree(SharemindModuleApi0x1SyscallContext * c,
+                           std::uint64_t ptr)
+    { return fromC(c).publicFree(PublicMemoryPointer{ptr}); }
+
+    static std::size_t publicMemPtrSize(SharemindModuleApi0x1SyscallContext * c,
+                                        std::uint64_t ptr)
+    { return fromC(c).publicMemPtrSize(PublicMemoryPointer{ptr}); }
+
+    static void * publicMemPtrData(SharemindModuleApi0x1SyscallContext * c,
+                                   std::uint64_t ptr)
+    { return fromC(c).publicMemPtrData(PublicMemoryPointer{ptr}); }
+
+    /* Access to dynamic memory not exposed to VM instructions: */
+    static void * allocPrivate(SharemindModuleApi0x1SyscallContext *,
+                               std::size_t)
+    { return nullptr; }
+
+    static void freePrivate(SharemindModuleApi0x1SyscallContext *, void *) {}
+
+    static bool reservePrivate(SharemindModuleApi0x1SyscallContext *,
+                               std::size_t)
+    { return false; }
+
+    static bool releasePrivate(SharemindModuleApi0x1SyscallContext *,
+                               std::size_t)
+    { return false; }
+
+private: /* Methods: */
+
+    static Vm::SyscallContext & fromC(
+            SharemindModuleApi0x1SyscallContext * const c) noexcept
+    { return *static_cast<Vm::SyscallContext *>(assertReturn(assertReturn(c)->vm_internal)); }
+
+    static Vm::SyscallContext const & fromC(
+            SharemindModuleApi0x1SyscallContext const * const c) noexcept
+    { return *static_cast<Vm::SyscallContext const *>(assertReturn(assertReturn(c)->vm_internal)); }
+
+};
+
+class OldSyscallWrapper final: public Vm::SyscallWrapper {
+
+public: /* Methods: */
+
+    OldSyscallWrapper(sharemind::SyscallWrapper wrapper)
+        : m_wrapper(std::move(wrapper))
+    {}
+
+    void operator()(
+            std::vector<::SharemindCodeBlock> & arguments,
+            std::vector<Vm::Reference> & references,
+            std::vector<Vm::ConstReference> & creferences,
+            ::SharemindCodeBlock * returnValue,
+            Vm::SyscallContext & context) const final override
+    {
+        OldSyscallContext ctx(context, m_wrapper.internal);
+
+        #define HANDLE_REFS(which,oldClass) \
+            std::array<oldClass, 11u> which ## sOnStack; \
+            std::unique_ptr<oldClass[]> which ## onHeap; \
+            oldClass * which ## s; \
+            if (which ## erences.empty()) { \
+                which ## s = nullptr; \
+            } else { \
+                if (which ## erences.size() < which ## sOnStack.size()) { \
+                    which ## s = which ## sOnStack.data(); \
+                } else { \
+                    if (which ## erences.size() \
+                        == std::numeric_limits<std::size_t>::max()) \
+                        throw std::bad_array_new_length(); \
+                    which ## onHeap = \
+                        makeUnique<oldClass[]>(which ## erences.size() + 1u); \
+                    which ## s = which ## onHeap.get(); \
+                } \
+                auto ptr = which ## s; \
+                for (auto const & which : which ## erences) { \
+                    ptr->pData = which.data.get(); \
+                    ptr->size = which.size; \
+                    ++ptr; \
+                } \
+                ptr->pData = nullptr; \
+                ptr->size = 0u; \
+            }
+
+        HANDLE_REFS(ref,  ::SharemindModuleApi0x1Reference)
+        HANDLE_REFS(cref, ::SharemindModuleApi0x1CReference)
+        #undef HANDLE_REFS
+
+        auto const r = m_wrapper.callable(arguments.data(),
+                                          arguments.size(),
+                                          refs,
+                                          crefs,
+                                          returnValue,
+                                          &ctx);
+
+        switch (r) {
+        case SHAREMIND_MODULE_API_0x1_OK:
+            return;
+        case SHAREMIND_MODULE_API_0x1_OUT_OF_MEMORY:
+            throw std::bad_alloc();
+        case SHAREMIND_MODULE_API_0x1_IMPLEMENTATION_LIMITS_REACHED:
+            throw ModuleImplementationLimitsReachedException();
+        case SHAREMIND_MODULE_API_0x1_MODULE_ERROR:
+            throw ModuleErrorException();
+        case SHAREMIND_MODULE_API_0x1_GENERAL_ERROR:
+            throw ModuleGeneralErrorException();
+        case SHAREMIND_MODULE_API_0x1_INVALID_CALL:
+            throw ModuleInvalidCallException();
+        case SHAREMIND_MODULE_API_0x1_MISSING_FACILITY:
+            throw ModuleMissingFacilityException();
+        case SHAREMIND_MODULE_API_0x1_INVALID_PD_CONFIGURATION:
+            throw ModuleInvalidPdConfiguration();
+        case SHAREMIND_MODULE_API_0x1_INVALID_MODULE_CONFIGURATION:
+            throw ModuleInvalidModuleConfiguration();
+        case SHAREMIND_MODULE_API_0x1_ACCESS_DENIED:
+            throw ModuleAccessDeniedException();
+        }
+    }
+
+private: /* Fields: */
+
+    sharemind::SyscallWrapper m_wrapper;
+
+};
 
 SharemindPd * vmFindPd(std::string const & name) noexcept {
     Pd * const pd = modapi.findPd(name.c_str());
@@ -1044,6 +1220,16 @@ int main(int argc, char * argv[]) {
                             m.filename,
                             "\"!");
             }
+
+            /// \todo Should the module be destroyed, these are left dangling:
+            for (std::size_t i = 0u; i < module.numSyscalls(); ++i) {
+                Syscall * syscall = module.syscall(i);
+                assert(syscall);
+                syscallWrappers.emplace(
+                            syscall->signature(),
+                            std::make_shared<OldSyscallWrapper>(
+                                syscall->wrapper()));
+            }
         }
         SHAREMIND_SCOPE_EXIT(while (modapi.numPds() > 0u) delete modapi.pd(0u));
         for (auto const & pd : conf->protectionDomainList()) {
@@ -1074,7 +1260,13 @@ int main(int argc, char * argv[]) {
 
         Vm vm;
         vm.setPdFinder(vmFindPd);
-        vm.setSyscallFinder(vmFindSyscall);
+        vm.setSyscallFinder(
+                    [](std::string const & name) {
+                        auto const it = syscallWrappers.find(name);
+                        return (it != syscallWrappers.end())
+                                ? it->second
+                                : nullptr;
+                    });
         vm.setProcessFacilityFinder(vmFindProcessFacility);
         Program program(vm);
         try {
@@ -1129,16 +1321,7 @@ int main(int argc, char * argv[]) {
                           << ", block 0x"
                           << std::hex << process.currentIp() << std::dec
                           << '.' << std::endl;
-                try {
-                    throw;
-                } catch (Process::SystemCallErrorException const &) {
-                    std::cerr << "System call returned exception: "
-                              << SharemindModuleApiError_toString(
-                                     static_cast<ModuleApiError>(
-                                         process.syscallException()))
-                              << std::endl;
-                    throw;
-                }
+                throw;
             }
 
             std::cerr << "Process returned status: "

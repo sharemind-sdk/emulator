@@ -20,17 +20,16 @@
 #ifndef SHAREMIND_EMULATOR_SYSCALLS_H
 #define SHAREMIND_EMULATOR_SYSCALLS_H
 
-#include <map>
+#include <memory>
 #include <sharemind/Datum.h>
-#include <sharemind/libmodapi/libmodapicxx.h>
+#include <sharemind/libvm/Vm.h>
 #include <sharemind/SimpleUnorderedStringMap.h>
-#include <string>
 
 
 namespace sharemind {
 
-extern std::map<std::string, SharemindSyscallWrapper const> const
-       staticSyscallWrappers __attribute__((visibility("internal")));
+extern SimpleUnorderedStringMap<std::shared_ptr<Vm::SyscallWrapper> >
+       syscallWrappers __attribute__((visibility("internal")));
 extern SimpleUnorderedStringMap<Datum> processArguments
         __attribute__((visibility("internal")));
 extern int processResultsStream __attribute__((visibility("internal")));

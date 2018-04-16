@@ -37,7 +37,7 @@ FIND_PACKAGE(SharemindLibFModapiCxx 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibModapiCxx 0.3.0 REQUIRED)
 FIND_PACKAGE(SharemindLibProcessFacility 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibRandom REQUIRED)
-FIND_PACKAGE(SharemindLibVm 0.6.0 REQUIRED)
+FIND_PACKAGE(SharemindLibVm 0.8.0 REQUIRED)
 
 
 # Emulator:
@@ -81,6 +81,7 @@ SharemindAddExecutable("sharemind-emulator"
         ${SharemindLibProcessFacility_DEFINITIONS}
         ${SharemindLibRandom_DEFINITIONS}
         ${SharemindLibVm_DEFINITIONS}
+        "-DSHAREMIND_INTERNAL_"
     LINK_LIBRARIES
         ${SharemindEmulator_LIBRARIES}
 )
@@ -153,7 +154,7 @@ SharemindAddComponentPackage(bin
         "libsharemind-fmodapi (>= 0.1.0)"
         "libsharemind-modapi (>= 0.3.0)"
         "libsharemind-random (>= 0.2.0)"
-        "libsharemind-vm (>= 0.5.0)"
+        "libsharemind-vm (>= 0.8.0)"
         "libstdc++6 (>= 4.8.0)"
 )
 SharemindAddComponentPackage(debug
