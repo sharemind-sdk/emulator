@@ -651,8 +651,7 @@ inline CommandLineArgs parseCommandLine(int const argc,
         goto parseCommandLine_ ## label; \
     } else (void) 0
 #define LONGOPT_ARG(name,label) \
-    if ((strncmp(opt, name "=", sizeof(name)) == 0) \
-        && (opt[sizeof(name)] != '\0')) { \
+    if ((strncmp(opt, name "=", sizeof(name)) == 0)) { \
         argument = opt + sizeof(name); \
         goto parseCommandLine_ ## label; \
     } else (void) 0
