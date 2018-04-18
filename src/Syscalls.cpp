@@ -140,7 +140,7 @@ inline void writeDataWithSize(int const outFd,
 template <void (*F)(void * buf, std::size_t bufSize) noexcept>
 EMULATOR_SYSCALL(blockingRandomize_) {
     (void) c;
-    if (!crefs.empty() || returnValue || args.empty() || refs.size() != 1u)
+    if (!crefs.empty() || returnValue || !args.empty() || refs.size() != 1u)
         throw InvalidCallException();
 
     (*F)(refs[0u].data.get(), refs[0u].size);
