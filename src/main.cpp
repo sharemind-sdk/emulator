@@ -922,20 +922,7 @@ public: /* Types: */
 public: /* Methods: */
 
     OldSyscallContext(Vm::SyscallContext & context, void * moduleHandle)
-        : SharemindModuleApi0x1SyscallContext{
-              &context,
-              context.processInternal(),
-              moduleHandle,
-              &get_pdpi_info,
-              &processFacility,
-              &publicAlloc,
-              &publicFree,
-              &publicMemPtrSize,
-              &publicMemPtrData,
-              &allocPrivate,
-              &freePrivate,
-              &reservePrivate,
-              &releasePrivate}
+        : OldSyscallContext(context, moduleHandle, context.processInternal())
     {}
 
     static SharemindModuleApi0x1PdpiInfo const * get_pdpi_info(
@@ -946,7 +933,11 @@ public: /* Methods: */
     static void * processFacility(
             SharemindModuleApi0x1SyscallContext const * c,
             char const * facilityName)
-    { return fromC(c).processFacility(facilityName); }
+    {
+        if (auto r = fromC(c).processFacility(facilityName))
+            return r.get();
+        return nullptr;
+    }
 
     static std::uint64_t publicAlloc(SharemindModuleApi0x1SyscallContext * c,
                                      std::uint64_t nBytes)
@@ -981,6 +972,26 @@ public: /* Methods: */
 
 private: /* Methods: */
 
+    OldSyscallContext(Vm::SyscallContext & context,
+                      void * moduleHandle,
+                      std::shared_ptr<void> processInternal)
+        : SharemindModuleApi0x1SyscallContext{
+              &context,
+              processInternal.get(),
+              moduleHandle,
+              &get_pdpi_info,
+              &processFacility,
+              &publicAlloc,
+              &publicFree,
+              &publicMemPtrSize,
+              &publicMemPtrData,
+              &allocPrivate,
+              &freePrivate,
+              &reservePrivate,
+              &releasePrivate}
+        , m_processInternal(std::move(processInternal))
+    {}
+
     static Vm::SyscallContext & fromC(
             SharemindModuleApi0x1SyscallContext * const c) noexcept
     { return *static_cast<Vm::SyscallContext *>(assertReturn(assertReturn(c)->vm_internal)); }
@@ -988,6 +999,10 @@ private: /* Methods: */
     static Vm::SyscallContext const & fromC(
             SharemindModuleApi0x1SyscallContext const * const c) noexcept
     { return *static_cast<Vm::SyscallContext const *>(assertReturn(assertReturn(c)->vm_internal)); }
+
+private: /* Fields: */
+
+    std::shared_ptr<void> const m_processInternal;
 
 };
 
@@ -1297,7 +1312,10 @@ int main(int argc, char * argv[]) {
                     assert(ctx_->context);
                     auto & p = *static_cast<Process *>(ctx_->context);
                     try {
-                        p.setFacility(name, facility);
+                        p.setFacility(name,
+                                      std::shared_ptr<void>(
+                                          std::shared_ptr<void>(),
+                                          facility));
                         return true;
                     } catch (...) {
                         return false; /// \todo store exception?
@@ -1305,10 +1323,15 @@ int main(int argc, char * argv[]) {
                 }
             };
             FacilityModulePis pis(fmodapi, ctx);
-            process.setInternal(&vmProcessFacility);
+            process.setInternal(std::shared_ptr<void>(std::shared_ptr<void>(),
+                                                      &vmProcessFacility));
             process.setPdpiFacility("ProcessFacility", &vmProcessFacility);
-            process.setFacility("ProcessFacility", &vmProcessFacility);
-            process.setFacility("AccessControlProcessFacility", &aclFacility);
+            process.setFacility("ProcessFacility",
+                                std::shared_ptr<void>(std::shared_ptr<void>(),
+                                                      &vmProcessFacility));
+            process.setFacility("AccessControlProcessFacility",
+                                std::shared_ptr<void>(std::shared_ptr<void>(),
+                                                      &aclFacility));
 
             try {
                 process.run();
