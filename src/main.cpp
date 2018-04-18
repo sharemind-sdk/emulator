@@ -922,7 +922,20 @@ public: /* Types: */
 public: /* Methods: */
 
     OldSyscallContext(Vm::SyscallContext & context, void * moduleHandle)
-        : OldSyscallContext(context, moduleHandle, context.processInternal())
+        : SharemindModuleApi0x1SyscallContext{
+              &context,
+              nullptr, // process_internal
+              moduleHandle,
+              &get_pdpi_info,
+              &processFacility,
+              &publicAlloc,
+              &publicFree,
+              &publicMemPtrSize,
+              &publicMemPtrData,
+              &allocPrivate,
+              &freePrivate,
+              &reservePrivate,
+              &releasePrivate}
     {}
 
     static SharemindModuleApi0x1PdpiInfo const * get_pdpi_info(
@@ -972,26 +985,6 @@ public: /* Methods: */
 
 private: /* Methods: */
 
-    OldSyscallContext(Vm::SyscallContext & context,
-                      void * moduleHandle,
-                      std::shared_ptr<void> processInternal)
-        : SharemindModuleApi0x1SyscallContext{
-              &context,
-              processInternal.get(),
-              moduleHandle,
-              &get_pdpi_info,
-              &processFacility,
-              &publicAlloc,
-              &publicFree,
-              &publicMemPtrSize,
-              &publicMemPtrData,
-              &allocPrivate,
-              &freePrivate,
-              &reservePrivate,
-              &releasePrivate}
-        , m_processInternal(std::move(processInternal))
-    {}
-
     static Vm::SyscallContext & fromC(
             SharemindModuleApi0x1SyscallContext * const c) noexcept
     { return *static_cast<Vm::SyscallContext *>(assertReturn(assertReturn(c)->vm_internal)); }
@@ -999,10 +992,6 @@ private: /* Methods: */
     static Vm::SyscallContext const & fromC(
             SharemindModuleApi0x1SyscallContext const * const c) noexcept
     { return *static_cast<Vm::SyscallContext const *>(assertReturn(assertReturn(c)->vm_internal)); }
-
-private: /* Fields: */
-
-    std::shared_ptr<void> const m_processInternal;
 
 };
 
@@ -1323,8 +1312,6 @@ int main(int argc, char * argv[]) {
                 }
             };
             FacilityModulePis pis(fmodapi, ctx);
-            process.setInternal(std::shared_ptr<void>(std::shared_ptr<void>(),
-                                                      &vmProcessFacility));
             process.setPdpiFacility("ProcessFacility", &vmProcessFacility);
             process.setFacility("ProcessFacility",
                                 std::shared_ptr<void>(std::shared_ptr<void>(),
