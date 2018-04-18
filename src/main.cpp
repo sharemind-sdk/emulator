@@ -1140,9 +1140,6 @@ private: /* Fields: */
 
 };
 
-void * vmFindProcessFacility(std::string const & name) noexcept
-{ return (name == "ProcessFacility") ? &vmProcessFacility : nullptr; }
-
 } // anonymous namespace
 
 int main(int argc, char * argv[]) {
@@ -1266,7 +1263,6 @@ int main(int argc, char * argv[]) {
                                 ? it->second
                                 : nullptr;
                     });
-        vm.setProcessFacilityFinder(vmFindProcessFacility);
         Program program(vm);
         try {
             program.loadFromFile(cmdLine.bytecodeFilename);
@@ -1311,6 +1307,7 @@ int main(int argc, char * argv[]) {
             FacilityModulePis pis(fmodapi, ctx);
             process.setInternal(&vmProcessFacility);
             process.setPdpiFacility("ProcessFacility", &vmProcessFacility);
+            process.setFacility("ProcessFacility", &vmProcessFacility);
             process.setFacility("AccessControlProcessFacility", &aclFacility);
 
             try {
