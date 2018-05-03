@@ -1267,9 +1267,9 @@ int main(int argc, char * argv[]) {
                                 ? it->second
                                 : nullptr;
                     });
-        Program program(vm);
+        Program program;
         try {
-            program.loadFromFile(cmdLine.bytecodeFilename);
+            program = Program(vm, cmdLine.bytecodeFilename);
         } catch (...) {
             throwWithNestedConcatException<ProgramLoadException>(
                         "Failed to load program bytecode \"",
