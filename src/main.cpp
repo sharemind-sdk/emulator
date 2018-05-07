@@ -1231,6 +1231,8 @@ int main(int argc, char * argv[]) {
                                 syscall->wrapper()));
             }
         }
+
+        modapi.setPdpiFacility("ProcessFacility", &vmProcessFacility);
         SHAREMIND_SCOPE_EXIT(while (modapi.numPds() > 0u) delete modapi.pd(0u));
         for (auto const & pd : conf->protectionDomainList()) {
             Pdk * const pdk = modapi.findPdk(pd.kind.c_str());
@@ -1312,7 +1314,6 @@ int main(int argc, char * argv[]) {
                 }
             };
             FacilityModulePis pis(fmodapi, ctx);
-            process.setPdpiFacility("ProcessFacility", &vmProcessFacility);
             process.setFacility("ProcessFacility",
                                 std::shared_ptr<void>(std::shared_ptr<void>(),
                                                       &vmProcessFacility));
