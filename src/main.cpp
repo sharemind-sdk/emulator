@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <exception>
 #include <fcntl.h>
+#include <fstream>
 #include <iterator>
 #include <iostream>
 #include <iosfwd>
@@ -51,8 +52,10 @@
 #include <sharemind/libvm/Program.h>
 #include <sharemind/libvm/Process.h>
 #include <sharemind/MakeUnique.h>
+#include <sharemind/module-apis/api_0x1.h>
 #include <sharemind/ScopeExit.h>
 #include <sharemind/StringHashTablePredicate.h>
+#include <sharemind/SimpleUnorderedStringMap.h>
 #include <signal.h>
 #include <sstream>
 #include <string>
@@ -111,6 +114,10 @@ DEFINE_EXCEPTION_STR(OutputFileOpenException);
 DEFINE_EXCEPTION_STR(OutputFileException);
 DEFINE_EXCEPTION_STR(InputFileOpenException);
 DEFINE_EXCEPTION_STR(InputFileException);
+DEFINE_EXCEPTION_CONST_MSG(MultipleLinkingUnitsNotSupportedException,
+                           "Sharemind Executables with multiple linking units "
+                           "are currently not supported!");
+DEFINE_EXCEPTION_STR(UndefinedPdBindException);
 DEFINE_EXCEPTION_STR(ProgramLoadException);
 struct GracefulException {};
 struct WriteIntegralArgumentException {};
@@ -913,6 +920,67 @@ ModuleApi modapi{[](char const * const signature)
 
 std::uint64_t const localPid = 0u;
 
+class Pdpis {
+
+public: /* Methods: */
+
+    void addPdpi(std::shared_ptr<Pd> pdPtr) {
+        struct SmartPdpi {
+            SmartPdpi(std::shared_ptr<Pd> pdPtr_)
+                : pdPtr(std::move(pdPtr_))
+                , pdpi(*pdPtr)
+            {}
+            std::shared_ptr<Pd> pdPtr;
+            Pdpi pdpi;
+        };
+        auto smartPdpi(std::make_shared<SmartPdpi>(std::move(pdPtr)));
+        auto & pdpi = smartPdpi->pdpi;
+        m_pdpis.emplace_back(
+                    std::shared_ptr<Pdpi>(std::move(smartPdpi), &pdpi));
+    }
+
+    void startAll() {
+        m_pdpiInfos.resize(m_pdpis.size());
+        auto infoIt = m_pdpiInfos.begin();
+        for (auto it = m_pdpis.begin(); it != m_pdpis.end(); ++it, ++infoIt) {
+            try {
+                auto & pdpi = **it;
+                pdpi.start();
+                infoIt->pdpiHandle = pdpi.handle();
+                infoIt->pdHandle = pdpi.pd()->handle();
+                infoIt->pdkIndex = pdpi.pdk()->index();
+                infoIt->moduleHandle = pdpi.module()->handle();
+            } catch (...) {
+                while (it != m_pdpis.begin())
+                    (*--it)->stop();
+                throw;
+            }
+        }
+    }
+
+    void stopAllAndClear() noexcept {
+        for (auto const & pdpi : m_pdpis)
+            pdpi->stop();
+        m_pdpis.clear();
+    }
+
+    void clear() noexcept { m_pdpis.clear(); }
+
+    SharemindModuleApi0x1PdpiInfo const * pdpiInfo(std::size_t index)
+            const noexcept
+    {
+        if (index < m_pdpiInfos.size())
+            return std::addressof(m_pdpiInfos[index]);
+        return nullptr;
+    }
+
+private: /* Fields: */
+
+    std::vector<std::shared_ptr<Pdpi> > m_pdpis;
+    std::vector<SharemindModuleApi0x1PdpiInfo> m_pdpiInfos;
+
+} pdpis;
+
 class OldSyscallContext final: public SharemindModuleApi0x1SyscallContext {
 
 public: /* Types: */
@@ -939,9 +1007,9 @@ public: /* Methods: */
     {}
 
     static SharemindModuleApi0x1PdpiInfo const * get_pdpi_info(
-            SharemindModuleApi0x1SyscallContext * c,
+            SharemindModuleApi0x1SyscallContext *,
             std::uint64_t pd_index)
-    { return fromC(c).pdpiInfo(pd_index); }
+    { return pdpis.pdpiInfo(pd_index); }
 
     static void * processFacility(
             SharemindModuleApi0x1SyscallContext const * c,
@@ -1080,11 +1148,6 @@ private: /* Fields: */
 
 };
 
-SharemindPd * vmFindPd(std::string const & name) noexcept {
-    Pd * const pd = modapi.findPd(name.c_str());
-    return pd ? pd->cPtr() : nullptr;
-}
-
 SharemindProcessFacility vmProcessFacility{
     [](const SharemindProcessFacility *) noexcept { return "0"; },
     [](const SharemindProcessFacility *) noexcept -> void const *
@@ -1200,6 +1263,7 @@ int main(int argc, char * argv[]) {
                             "\"!");
             }
         }
+
         for (auto const & m : conf->moduleList()) {
             Module & module = [&]() -> Module & {
                 try {
@@ -1233,23 +1297,23 @@ int main(int argc, char * argv[]) {
         }
 
         modapi.setPdpiFacility("ProcessFacility", &vmProcessFacility);
-        SHAREMIND_SCOPE_EXIT(while (modapi.numPds() > 0u) delete modapi.pd(0u));
+        SimpleUnorderedStringMap<std::shared_ptr<Pd> > pds;
         for (auto const & pd : conf->protectionDomainList()) {
             Pdk * const pdk = modapi.findPdk(pd.kind.c_str());
             if (!pdk)
                 throw PdkNotFoundException{};
-            Pd * const protectionDomain = [&]() {
+            auto protectionDomain([&]() {
                 try {
-                    return new Pd{*pdk,
-                                  pd.name.c_str(),
-                                  pd.configurationFile.c_str()};
+                    return std::make_shared<Pd>(*pdk,
+                                                pd.name.c_str(),
+                                                pd.configurationFile.c_str());
                 } catch (...) {
                     throwWithNestedConcatException<PdCreateException>(
                                 "Failed to create protection domain \"",
                                 pd.name,
                                 "\"!");
                 }
-            }();
+            }());
             try {
                 protectionDomain->start();
             } catch (...) {
@@ -1258,10 +1322,12 @@ int main(int argc, char * argv[]) {
                             pd.name,
                             "\"!");
             }
+            pds.emplace(std::piecewise_construct,
+                        std::make_tuple(pd.name),
+                        std::make_tuple(std::move(protectionDomain)));
         }
 
         Vm vm;
-        vm.setPdFinder(vmFindPd);
         vm.setSyscallFinder(
                     [](std::string const & name) {
                         auto const it = syscallWrappers.find(name);
@@ -1269,9 +1335,42 @@ int main(int argc, char * argv[]) {
                                 ? it->second
                                 : nullptr;
                     });
+
+
         Program program;
         try {
-            program = Program(vm, cmdLine.bytecodeFilename);
+            Executable executable;
+            {
+                std::ifstream exeFile(cmdLine.bytecodeFilename);
+                exeFile >> executable;
+            }
+            {
+                if (executable.linkingUnits.size() > 1u)
+                    throw MultipleLinkingUnitsNotSupportedException();
+                auto const & linkingUnit = executable.linkingUnits.front();
+                if (auto s = std::move(linkingUnit.pdBindingsSection)) {
+                    auto const & pdBindings = s->pdBindings;
+                    for (auto it = pdBindings.begin();
+                         it != pdBindings.end();
+                         ++it)
+                    {
+                        auto const pdIt(pds.find(*it));
+                        if (pdIt == pds.end()) {
+                            pdpis.clear();
+                            std::ostringstream oss;
+                            oss << "Found bindings for undefined protection "
+                                   "domains: " << *it;
+                            while (++it != pdBindings.end())
+                                if (pds.find(*it) == pds.end())
+                                    oss << ", " << *it;
+                            throw UndefinedPdBindException(oss.str());
+                        }
+                        pdpis.addPdpi(pdIt->second);
+                    }
+                }
+            }
+
+            program = Program(vm, std::move(executable));
         } catch (...) {
             throwWithNestedConcatException<ProgramLoadException>(
                         "Failed to load program bytecode \"",
@@ -1321,15 +1420,18 @@ int main(int argc, char * argv[]) {
                                 std::shared_ptr<void>(std::shared_ptr<void>(),
                                                       &aclFacility));
 
+            pdpis.startAll();
             try {
                 process.run();
             } catch (...) {
+                pdpis.stopAllAndClear();
                 std::cerr << "At section " << process.currentCodeSectionIndex()
                           << ", block 0x"
                           << std::hex << process.currentIp() << std::dec
                           << '.' << std::endl;
                 throw;
             }
+            pdpis.stopAllAndClear();
 
             std::cerr << "Process returned status: "
                       << process.returnValue().int64[0] << std::endl;
