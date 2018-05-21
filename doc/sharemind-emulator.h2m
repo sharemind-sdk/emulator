@@ -48,3 +48,7 @@ The simple protocol can be described in pseudo-C packed structures as follows:
   } arguments[num_arguments];
 
 Little-endian is assumed for the uint64_t size values.
+
+[Argument stream decipher]
+To ease the usage of the emulator we have included a simple python script `arguments-stream-decipher.py` that
+converts the arguments stream protocol to human readable format.
