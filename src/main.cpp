@@ -1391,21 +1391,23 @@ int main(int argc, char * argv[]) {
         SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));
 
         {
-            Process process(program);
+            using ProcessFacilities =
+                    SimpleUnorderedStringMap<std::shared_ptr<void> >;
+            ProcessFacilities processFacilities;
             FacilityModulePis::Context ctx{
-                &process,
+                &processFacilities,
                 [](FacilityModulePis::Context * const ctx_,
                    char const * const name,
                    void * const facility)
                 {
                     assert(ctx_);
                     assert(ctx_->context);
-                    auto & p = *static_cast<Process *>(ctx_->context);
+                    auto & p = *static_cast<ProcessFacilities *>(ctx_->context);
                     try {
-                        p.setFacility(name,
-                                      std::shared_ptr<void>(
-                                          std::shared_ptr<void>(),
-                                          facility));
+                        p.emplace(name,
+                                  std::shared_ptr<void>(
+                                      std::shared_ptr<void>(),
+                                      facility));
                         return true;
                     } catch (...) {
                         return false; /// \todo store exception?
@@ -1413,12 +1415,25 @@ int main(int argc, char * argv[]) {
                 }
             };
             FacilityModulePis pis(fmodapi, ctx);
-            process.setFacility("ProcessFacility",
-                                std::shared_ptr<void>(std::shared_ptr<void>(),
-                                                      &vmProcessFacility));
-            process.setFacility("AccessControlProcessFacility",
-                                std::shared_ptr<void>(std::shared_ptr<void>(),
-                                                      &aclFacility));
+            processFacilities.emplace("ProcessFacility",
+                                      std::shared_ptr<void>(
+                                          std::shared_ptr<void>(),
+                                          &vmProcessFacility));
+            processFacilities.emplace("AccessControlProcessFacility",
+                                      std::shared_ptr<void>(
+                                          std::shared_ptr<void>(),
+                                          &aclFacility));
+
+            Process process(program);
+            process.setFacilityFinder(
+                        [&processFacilities](char const * name) noexcept
+                                -> std::shared_ptr<void>
+                        {
+                            auto const it(processFacilities.find(name));
+                            if (it != processFacilities.end())
+                                return it->second;
+                            return nullptr;
+                        });
 
             pdpis.startAll();
             try {
