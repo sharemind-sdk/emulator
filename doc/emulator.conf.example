@@ -27,5 +27,5 @@ File = libsharemind_mod_shared3p_emu.so
 
 [ProtectionDomain pd_shared3p]
 Kind = shared3p
-Configuration = shared3p_emu.cfg
+Configuration = %{CurrentFileDirectory}/shared3p_emu.cfg
 
