@@ -30,13 +30,13 @@ SharemindSetProjectVersion()
 
 FIND_PROGRAM(HELP2MAN help2man)
 FIND_PACKAGE(Boost 1.50 COMPONENTS system filesystem REQUIRED)
-FIND_PACKAGE(SharemindCxxHeaders REQUIRED)
-FIND_PACKAGE(SharemindLibAccessControlProcessFacility REQUIRED)
-FIND_PACKAGE(SharemindLibConfiguration REQUIRED)
+FIND_PACKAGE(SharemindCxxHeaders 0.4.0 REQUIRED)
+FIND_PACKAGE(SharemindLibAccessControlProcessFacility 0.1.0 REQUIRED)
+FIND_PACKAGE(SharemindLibConfiguration 0.2.0 REQUIRED)
 FIND_PACKAGE(SharemindLibFModapiCxx 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibModapiCxx 0.3.0 REQUIRED)
 FIND_PACKAGE(SharemindLibProcessFacility 0.1.0 REQUIRED)
-FIND_PACKAGE(SharemindLibRandom REQUIRED)
+FIND_PACKAGE(SharemindLibRandom 0.3.0 REQUIRED)
 FIND_PACKAGE(SharemindLibVm 0.8.0 REQUIRED)
 FIND_PACKAGE(SharemindModuleApis 1.0.0 REQUIRED)
 
@@ -155,10 +155,10 @@ SharemindAddComponentPackage(bin
         "libboost-filesystem${BV}"
         "libboost-system${BV}"
         "libc6 (>= 2.19)"
-        "libsharemind-configuration (>= 0.1.0)"
+        "libsharemind-configuration (>= 0.2.0)"
         "libsharemind-fmodapi (>= 0.1.0)"
         "libsharemind-modapi (>= 0.3.0)"
-        "libsharemind-random (>= 0.2.0)"
+        "libsharemind-random (>= 0.3.0)"
         "libsharemind-vm (>= 0.8.0)"
         "libstdc++6 (>= 4.8.0)"
 )
