@@ -33,7 +33,7 @@ FIND_PACKAGE(Boost 1.50 COMPONENTS system filesystem REQUIRED)
 FIND_PACKAGE(SharemindCxxHeaders 0.4.0 REQUIRED)
 FIND_PACKAGE(SharemindLibAccessControlProcessFacility 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibConfiguration 0.2.0 REQUIRED)
-FIND_PACKAGE(SharemindLibFModapiCxx 0.1.0 REQUIRED)
+FIND_PACKAGE(SharemindLibFModapi 0.2.0 REQUIRED)
 FIND_PACKAGE(SharemindLibModapiCxx 0.3.0 REQUIRED)
 FIND_PACKAGE(SharemindLibProcessFacility 0.1.0 REQUIRED)
 FIND_PACKAGE(SharemindLibRandom 0.3.0 REQUIRED)
@@ -51,7 +51,7 @@ SharemindNewUniqueList(SharemindEmulator_LIBRARIES
     ${Boost_LIBRARIES}
     ${SharemindLibAccessControlProcessFacility_LIBRARIES}
     ${SharemindLibConfiguration_LIBRARIES}
-    ${SharemindLibFModapiCxx_LIBRARIES}
+    ${SharemindLibFModapi_LIBRARIES}
     ${SharemindLibModapiCxx_LIBRARIES}
     ${SharemindLibProcessFacility_LIBRARIES}
     ${SharemindLibRandom_LIBRARIES}
@@ -67,7 +67,7 @@ SharemindAddExecutable("sharemind-emulator"
         ${SharemindCxxHeaders_INCLUDE_DIRS}
         ${SharemindLibAccessControlProcessFacility_INCLUDE_DIRS}
         ${SharemindLibConfiguration_INCLUDE_DIRS}
-        ${SharemindLibFModapiCxx_INCLUDE_DIRS}
+        ${SharemindLibFModapi_INCLUDE_DIRS}
         ${SharemindLibModapiCxx_INCLUDE_DIRS}
         ${SharemindLibProcessFacility_INCLUDE_DIRS}
         ${SharemindLibRandom_INCLUDE_DIRS}
@@ -79,7 +79,7 @@ SharemindAddExecutable("sharemind-emulator"
         ${SharemindCxxHeaders_DEFINITIONS}
         ${SharemindLibAccessControlProcessFacility_DEFINITIONS}
         ${SharemindLibConfiguration_DEFINITIONS}
-        ${SharemindLibFModapiCxx_DEFINITIONS}
+        ${SharemindLibFModapi_DEFINITIONS}
         ${SharemindLibModapiCxx_DEFINITIONS}
         ${SharemindLibProcessFacility_DEFINITIONS}
         ${SharemindLibRandom_DEFINITIONS}
@@ -156,7 +156,7 @@ SharemindAddComponentPackage(bin
         "libboost-system${BV}"
         "libc6 (>= 2.19)"
         "libsharemind-configuration (>= 0.2.0)"
-        "libsharemind-fmodapi (>= 0.1.0)"
+        "libsharemind-fmodapi (>= 0.2.0)"
         "libsharemind-modapi (>= 0.3.0)"
         "libsharemind-random (>= 0.3.0)"
         "libsharemind-vm (>= 0.8.0)"

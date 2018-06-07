@@ -45,7 +45,7 @@
 #include <sharemind/Exception.h>
 #include <sharemind/ExceptionMacros.h>
 #include <sharemind/GlobalDeleter.h>
-#include <sharemind/libfmodapi/libfmodapicxx.h>
+#include <sharemind/libfmodapi/FacilityModuleApi.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
 #include <sharemind/libprocessfacility.h>
 #include <sharemind/libvm/Vm.h>
@@ -102,7 +102,6 @@ SHAREMIND_DEFINE_EXCEPTION_NOINLINE(sharemind::Exception,, EmulatorException);
 #endif
 DEFINE_EXCEPTION_STR(UsageException);
 DEFINE_EXCEPTION_STR(FacilityModuleLoadException);
-DEFINE_EXCEPTION_STR(FacilityModuleInitException);
 DEFINE_EXCEPTION_STR(ModuleLoadException);
 DEFINE_EXCEPTION_STR(ModuleInitException);
 DEFINE_EXCEPTION_STR(PdCreateException);
@@ -911,12 +910,7 @@ inline void printException(std::exception const & e) noexcept {
 }
 
 FacilityModuleApi fmodapi;
-ModuleApi modapi{[](char const * const signature)
-                   { return fmodapi.findModuleFacility(signature); },
-                 [](char const * const signature)
-                   { return fmodapi.findPdFacility(signature); },
-                 [](char const * const signature)
-                   { return fmodapi.findPdpiFacility(signature); }};
+ModuleApi modapi;
 
 std::uint64_t const localPid = 0u;
 
@@ -924,16 +918,31 @@ class Pdpis {
 
 public: /* Methods: */
 
-    void addPdpi(std::shared_ptr<Pd> pdPtr) {
+    void addPdpi(std::shared_ptr<Pd> pdPtr,
+                 std::shared_ptr<FacilityModuleApi::PdpiFacilityFinder> ff)
+    {
+        assert(ff);
         struct SmartPdpi {
-            SmartPdpi(std::shared_ptr<Pd> pdPtr_)
+            SmartPdpi(std::shared_ptr<Pd> pdPtr_,
+                      std::shared_ptr<FacilityModuleApi::PdpiFacilityFinder> ff)
                 : pdPtr(std::move(pdPtr_))
                 , pdpi(*pdPtr)
-            {}
+            {
+                pdpiFacilities.reserve(ff->pdpiFacilityMap().size());
+                for (auto const & fp : ff->pdpiFacilityMap()) {
+                    pdpi.setFacility(fp.first.c_str(), fp.second.get());
+                    pdpiFacilities.emplace_back(std::move(fp.second));
+                }
+            }
             std::shared_ptr<Pd> pdPtr;
+
+            /** \todo Remove this when libmodapi supports passing facilities by
+                      smart pointers: */
+            std::vector<std::shared_ptr<void> > pdpiFacilities;
             Pdpi pdpi;
         };
-        auto smartPdpi(std::make_shared<SmartPdpi>(std::move(pdPtr)));
+        auto smartPdpi(std::make_shared<SmartPdpi>(std::move(pdPtr),
+                                                   std::move(ff)));
         auto & pdpi = smartPdpi->pdpi;
         m_pdpis.emplace_back(
                     std::shared_ptr<Pdpi>(std::move(smartPdpi), &pdpi));
@@ -1242,28 +1251,22 @@ int main(int argc, char * argv[]) {
                                                      ? cmdLine.user
                                                      : conf->defaultUser());
         for (auto const & fm : conf->facilityModuleList()) {
-            FacilityModule * const fmodule = [&]() {
-                try {
-                    return new FacilityModule{fmodapi,
-                                              fm.filename.c_str(),
-                                              fm.configurationFile.c_str()};
-                } catch (...) {
-                    throwWithNestedConcatException<FacilityModuleLoadException>(
-                                "Failed to load facility module \"",
-                                fm.filename,
-                                "\"!");
-                }
-            }();
             try {
-                fmodule->init();
+                fmodapi.addModule(fm.filename, fm.configurationFile);
             } catch (...) {
-                throwWithNestedConcatException<FacilityModuleInitException>(
-                            "Failed to initialize facility module \"",
+                throwWithNestedConcatException<FacilityModuleLoadException>(
+                            "Failed to load facility module \"",
                             fm.filename,
                             "\"!");
             }
         }
 
+        /** \todo Remove this when libmodapi supports passing facilities by
+                  smart pointers: */
+        std::map<Module *,
+                 std::pair<decltype(fmodapi.createModuleFacilityFinder()),
+                           std::vector<std::shared_ptr<void> > > >
+                moduleFacilityInfo;
         for (auto const & m : conf->moduleList()) {
             Module & module = [&]() -> Module & {
                 try {
@@ -1277,6 +1280,21 @@ int main(int argc, char * argv[]) {
                 }
             }();
             try {
+                auto moduleFacilityFinder(fmodapi.createModuleFacilityFinder());
+                auto const & facilityMap(
+                            moduleFacilityFinder->moduleFacilityMap());
+                std::vector<std::shared_ptr<void> > facilities;
+                facilities.reserve(facilityMap.size());
+                for (auto & fp : facilityMap) {
+                    module.setFacility(fp.first.c_str(), fp.second.get());
+                    facilities.emplace_back(std::move(fp.second));
+                }
+                using P = decltype(moduleFacilityInfo)::value_type::second_type;
+                moduleFacilityInfo.emplace(
+                            &module,
+                            P(std::piecewise_construct,
+                              std::make_tuple(std::move(moduleFacilityFinder)),
+                              std::make_tuple(std::move(facilities))));
                 module.init();
             } catch (...) {
                 throwWithNestedConcatException<ModuleInitException>(
@@ -1297,6 +1315,14 @@ int main(int argc, char * argv[]) {
         }
 
         modapi.setPdpiFacility("ProcessFacility", &vmProcessFacility);
+
+        /** \todo Remove this when libmodapi supports passing facilities by
+                  smart pointers: */
+        std::map<Pd *,
+                 std::pair<
+                        std::shared_ptr<FacilityModuleApi::PdFacilityFinder>,
+                        std::vector<std::shared_ptr<void> > > >
+                pdFacilityInfo;
         SimpleUnorderedStringMap<std::shared_ptr<Pd> > pds;
         for (auto const & pd : conf->protectionDomainList()) {
             Pdk * const pdk = modapi.findPdk(pd.kind.c_str());
@@ -1315,6 +1341,27 @@ int main(int argc, char * argv[]) {
                 }
             }());
             try {
+                assert(moduleFacilityInfo.find(protectionDomain->module())
+                       != moduleFacilityInfo.end());
+                auto pdFacilityFinder(
+                        fmodapi.createPdFacilityFinder(
+                            moduleFacilityInfo[
+                                protectionDomain->module()].first));
+                auto const & facilityMap(
+                            pdFacilityFinder->pdFacilityMap());
+                std::vector<std::shared_ptr<void> > facilities;
+                facilities.reserve(facilityMap.size());
+                for (auto & fp : facilityMap) {
+                    protectionDomain->setFacility(fp.first.c_str(),
+                                                  fp.second.get());
+                    facilities.emplace_back(std::move(fp.second));
+                }
+                using P = decltype(pdFacilityInfo)::value_type::second_type;
+                pdFacilityInfo.emplace(
+                            protectionDomain.get(),
+                            P(std::piecewise_construct,
+                              std::make_tuple(std::move(pdFacilityFinder)),
+                              std::make_tuple(std::move(facilities))));
                 protectionDomain->start();
             } catch (...) {
                 throwWithNestedConcatException<PdStartException>(
@@ -1365,7 +1412,12 @@ int main(int argc, char * argv[]) {
                                     oss << ", " << *it;
                             throw UndefinedPdBindException(oss.str());
                         }
-                        pdpis.addPdpi(pdIt->second);
+                        assert(pdFacilityInfo.find(pdIt->second.get())
+                               != pdFacilityInfo.end());
+                        pdpis.addPdpi(
+                                pdIt->second,
+                                fmodapi.createPdpiFacilityFinder(
+                                    pdFacilityInfo[pdIt->second.get()].first));
                     }
                 }
             }
@@ -1391,30 +1443,8 @@ int main(int argc, char * argv[]) {
         SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));
 
         {
-            using ProcessFacilities =
-                    SimpleUnorderedStringMap<std::shared_ptr<void> >;
-            ProcessFacilities processFacilities;
-            FacilityModulePis::Context ctx{
-                &processFacilities,
-                [](FacilityModulePis::Context * const ctx_,
-                   char const * const name,
-                   void * const facility)
-                {
-                    assert(ctx_);
-                    assert(ctx_->context);
-                    auto & p = *static_cast<ProcessFacilities *>(ctx_->context);
-                    try {
-                        p.emplace(name,
-                                  std::shared_ptr<void>(
-                                      std::shared_ptr<void>(),
-                                      facility));
-                        return true;
-                    } catch (...) {
-                        return false; /// \todo store exception?
-                    }
-                }
-            };
-            FacilityModulePis pis(fmodapi, ctx);
+            auto processFacilities(
+                fmodapi.createProcessFacilityFinder()->processFacilityMap());
             processFacilities.emplace("ProcessFacility",
                                       std::shared_ptr<void>(
                                           std::shared_ptr<void>(),
