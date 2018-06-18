@@ -170,6 +170,6 @@ SharemindAddComponentPackage(debug
     DESCRIPTION "Sharemind Emulator debug symbols"
     DEB_SECTION "debug"
     DEB_DEPENDS
-        "sharemind-emulator (= ${SharemindEmulator_VERSION})"
+        "sharemind-emulator (= ${SharemindEmulator_DEB_bin_PACKAGE_VERSION})"
 )
 SharemindPackagingFinalize()
