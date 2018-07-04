@@ -7,7 +7,7 @@ DefaultUser = DebugUser
 
 [FacilityModule loghard]
 File = libsharemind_facility_loghard.so
-Configuration = backend logger [Emulator] module Logger stderr
+Configuration = backend logger [Emulator] module Logger facilitymodule Logger stderr
 
 [FacilityModule executionprofiler]
 File = libsharemind_facility_executionprofiler.so
