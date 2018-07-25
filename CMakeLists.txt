@@ -23,9 +23,7 @@ PROJECT(SharemindEmulator VERSION 1.2.0 LANGUAGES CXX)
 INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/config.local" OPTIONAL)
 INCLUDE("${CMAKE_CURRENT_BINARY_DIR}/config.local" OPTIONAL)
 
-FIND_PACKAGE(SharemindCMakeHelpers 1.2 REQUIRED)
-
-SharemindSetProjectVersion()
+FIND_PACKAGE(SharemindCMakeHelpers 1.3 REQUIRED)
 
 
 FIND_PROGRAM(HELP2MAN help2man)
@@ -42,6 +40,8 @@ FIND_PACKAGE(SharemindModuleApis 1.0.0 REQUIRED)
 
 
 # Emulator:
+SharemindNormalizeVersion(VERSION "${PROJECT_VERSION}"
+                          OUTPUT_VARIABLE SharemindEmulator_VERSION)
 SharemindSetCxx11CompileOptions()
 FILE(GLOB_RECURSE SharemindEmulator_SOURCES
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
