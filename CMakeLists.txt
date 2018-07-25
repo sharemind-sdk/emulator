@@ -41,7 +41,7 @@ FIND_PACKAGE(SharemindModuleApis 1.0.0 REQUIRED)
 
 # Emulator:
 SharemindNormalizeVersion(VERSION "${PROJECT_VERSION}"
-                          OUTPUT_VARIABLE SharemindEmulator_VERSION)
+                          OUTPUT_VARIABLE SharemindEmulator_NVERSION)
 SharemindSetCxx11CompileOptions()
 FILE(GLOB_RECURSE SharemindEmulator_SOURCES
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
@@ -74,7 +74,7 @@ SharemindAddExecutable("sharemind-emulator"
         ${SharemindLibVm_INCLUDE_DIRS}
         ${SharemindModuleApis_INCLUDE_DIRS}
     COMPILE_DEFINITIONS
-        "SHAREMIND_EMULATOR_VERSION=\"${SharemindEmulator_VERSION}\""
+        "SHAREMIND_EMULATOR_VERSION=\"${SharemindEmulator_NVERSION}\""
     LEGACY_DEFINITIONS
         ${SharemindCxxHeaders_DEFINITIONS}
         ${SharemindLibAccessControlProcessFacility_DEFINITIONS}
@@ -99,7 +99,7 @@ ADD_CUSTOM_TARGET("include_SharemindEmulator_docs_in_IDE"
 INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/doc/emulator.conf.example"
               "${CMAKE_CURRENT_SOURCE_DIR}/doc/argument-stream-decipher.py"
               "${CMAKE_CURRENT_SOURCE_DIR}/doc/emulator-access-control.conf.example"
-        DESTINATION "share/doc/sharemind-emulator-${SharemindEmulator_VERSION}"
+        DESTINATION "share/doc/sharemind-emulator-${SharemindEmulator_NVERSION}"
         COMPONENT "bin")
 
 
@@ -124,7 +124,7 @@ FUNCTION(GetEmulatorLdLibraryPath out)
     SET("${out}" "${L}" PARENT_SCOPE)
 ENDFUNCTION()
 FUNCTION(GenerateManPage)
-    SET(V "${SharemindEmulator_VERSION}")
+    SET(V "${SharemindEmulator_NVERSION}")
     GetEmulatorLdLibraryPath(L)
     ADD_CUSTOM_COMMAND(TARGET sharemind-emulator POST_BUILD
             COMMAND env "LD_LIBRARY_PATH=${L}" "LC_ALL=POSIX" ${HELP2MAN}
