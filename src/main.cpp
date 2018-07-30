@@ -115,7 +115,6 @@ DEFINE_EXCEPTION_CONST_MSG(MultipleLinkingUnitsNotSupportedException,
                            "are currently not supported!");
 DEFINE_EXCEPTION_STR(UndefinedPdBindException);
 DEFINE_EXCEPTION_STR(ProgramLoadException);
-struct GracefulException {};
 DEFINE_EXCEPTION_CONST_MSG(SigEmptySetException, "sigemptyset() failed!");
 DEFINE_EXCEPTION_CONST_MSG(SigActionException, "sigaction() failed!");
 DEFINE_EXCEPTION_CONST_MSG(ModuleImplementationLimitsReachedException,
@@ -749,12 +748,14 @@ parseCommandLine_user:
 parseCommandLine_help:
 
         printUsage();
-        throw GracefulException{};
+        r.justExit = true;
+        return r;
 
 parseCommandLine_version:
 
         std::cerr << argv[0u] << " " SHAREMIND_EMULATOR_VERSION << std::endl;
-        throw GracefulException{};
+        r.justExit = true;
+        return r;
 
 parseCommandLine_stdin:
 
@@ -917,7 +918,8 @@ parseCommandLine_printArgs:
                                                       r.outOpenFlag)
                                         : STDOUT_FILENO,
                                         r.outFilename);
-        throw GracefulException{};
+        r.justExit = true;
+        return r;
 
     }
     if (!r.bytecodeFilename)
@@ -1276,6 +1278,9 @@ int main(int argc, char * argv[]) {
         }
 
         CommandLineArgs cmdLine{parseCommandLine(argc, argv)};
+        if (cmdLine.justExit)
+            return EXIT_SUCCESS;
+
         std::shared_ptr<EmulatorConfiguration const> conf(
                     cmdLine.configurationFilename
                     ? makeUnique<EmulatorConfiguration>(
@@ -1519,8 +1524,6 @@ int main(int argc, char * argv[]) {
     } catch (std::exception const & e) {
         printException(e);
         return EXIT_FAILURE;
-    } catch (GracefulException const &) {
-        return EXIT_SUCCESS;
     }
 
     return EXIT_SUCCESS;
