@@ -505,21 +505,20 @@ int openOutFile(char const * const filename, int const openFlag) {
     return fd;
 }
 
-CommandLineArguments parseCommandLine(int const argc,
-                                      char const * const argv[])
+CommandLineArguments::CommandLineArguments(int const argc,
+                                           char const * const argv[])
 {
     assert(argc >= 1);
-    CommandLineArguments r;
     InputStream inputData;
     bool haveStdin = false;
 
     for (std::size_t i = 1u; i < static_cast<std::size_t>(argc); i++) {
         char const * opt = argv[i];
         if (opt[0u] != '-') {
-            if (r.bytecodeFilename)
+            if (m_bytecodeFilename)
                 throw UsageException{"Multiple bytecode FILENAME arguments "
                                      "given!"};
-            r.bytecodeFilename = opt;
+            m_bytecodeFilename = opt;
             continue;
         }
 
@@ -609,30 +608,30 @@ parseCommandLine_invalid:
 parseCommandLine_conf:
 
         assert(argument);
-        if (r.configurationFilename)
+        if (m_configurationFilename)
             throw UsageException{"Multiple --conf=FILENAME arguments given!"};
-        r.configurationFilename = argument;
+        m_configurationFilename = argument;
         continue;
 
 parseCommandLine_user:
 
         assert(argument);
-        if (r.user)
+        if (m_user)
             throw UsageException{"Multiple --user=USERNAME arguments given!"};
-        r.user = argument;
+        m_user = argument;
         continue;
 
 parseCommandLine_help:
 
         printUsage(argv[0u]);
-        r.justExit = true;
-        return r;
+        m_justExit = true;
+        return;
 
 parseCommandLine_version:
 
         std::cerr << argv[0u] << " " SHAREMIND_EMULATOR_VERSION << std::endl;
-        r.justExit = true;
-        return r;
+        m_justExit = true;
+        return;
 
 parseCommandLine_stdin:
 
@@ -759,17 +758,17 @@ parseCommandLine_file:
 
 parseCommandLine_outFile:
 
-        if (r.outFilename)
+        if (m_outFilename)
             throw UsageException{"Multiple --output=FILENAME arguments given!"};
-        r.outFilename = argument;
+        m_outFilename = argument;
         continue;
 
 #define SETOUTFILEFLAG(thisFlag,sThisFlag,otherFlag,sOtherFlag) \
     do { \
-        if (r.outOpenFlag == (otherFlag)) \
+        if (m_outOpenFlag == (otherFlag)) \
             throw UsageException{"Can't use both --" sOtherFlag " and --" \
                                  sThisFlag "!"}; \
-        r.outOpenFlag = (thisFlag); \
+        m_outOpenFlag = (thisFlag); \
     } while (false)
 
 parseCommandLine_force:
@@ -791,17 +790,15 @@ parseCommandLine_discard:
 parseCommandLine_printArgs:
 
 
-        inputData.writeToFileDescriptor(r.outFilename
-                                        ? openOutFile(r.outFilename,
-                                                      r.outOpenFlag)
+        inputData.writeToFileDescriptor(m_outFilename
+                                        ? openOutFile(m_outFilename,
+                                                      m_outOpenFlag)
                                         : STDOUT_FILENO,
-                                        r.outFilename);
-        r.justExit = true;
-        return r;
-
+                                        m_outFilename);
+        m_justExit = true;
+        return;
     }
-    if (!r.bytecodeFilename)
+    if (!m_bytecodeFilename)
         throw UsageException{"No bytecode FILENAME argument given!"};
-    r.processArguments = inputData.readArguments();
-    return r;
+    m_processArguments = inputData.readArguments();
 }

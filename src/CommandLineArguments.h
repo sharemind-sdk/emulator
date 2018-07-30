@@ -27,21 +27,27 @@
 
 struct CommandLineArguments {
 
+/* Types: */
+
     using ProcessArguments =
             sharemind::SimpleUnorderedStringMap<sharemind::Datum>;
 
-    ProcessArguments processArguments;
-    char const * configurationFilename = nullptr;
-    char const * user = nullptr;
-    char const * bytecodeFilename = nullptr;
-    char const * outFilename = nullptr;
-    int outOpenFlag = O_EXCL;
-    bool justExit = false;
+/* Methods: */
+
+    CommandLineArguments(int const argc, char const * const argv[]);
+
+/* Types: */
+
+    ProcessArguments m_processArguments;
+    char const * m_configurationFilename = nullptr;
+    char const * m_user = nullptr;
+    char const * m_bytecodeFilename = nullptr;
+    char const * m_outFilename = nullptr;
+    int m_outOpenFlag = O_EXCL;
+    bool m_justExit = false;
 
 };
 
 int openOutFile(char const * const filename, int const openFlag);
-CommandLineArguments parseCommandLine(int const argc,
-                                      char const * const argv[]);
 
 #endif /* SHAREMIND_EMULATOR_COMMANDLINEARGUMENTS_H */

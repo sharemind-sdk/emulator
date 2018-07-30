@@ -506,19 +506,19 @@ int main(int argc, char * argv[]) {
             r = sigaction(SIGPIPE, &sa, nullptr);
         }
 
-        auto const cmdLine(parseCommandLine(argc, argv));
-        if (cmdLine.justExit)
+        CommandLineArguments cmdLine(argc, argv);
+        if (cmdLine.m_justExit)
             return EXIT_SUCCESS;
-        processArguments = std::move(cmdLine.processArguments);
+        processArguments = std::move(cmdLine.m_processArguments);
 
         std::shared_ptr<EmulatorConfiguration const> conf(
-                    cmdLine.configurationFilename
+                    cmdLine.m_configurationFilename
                     ? makeUnique<EmulatorConfiguration>(
-                          cmdLine.configurationFilename)
+                          cmdLine.m_configurationFilename)
                     : makeUnique<EmulatorConfiguration>());
         AccessControlProcessFacilityImpl aclFacility(*conf,
-                                                     cmdLine.user
-                                                     ? cmdLine.user
+                                                     cmdLine.m_user
+                                                     ? cmdLine.m_user
                                                      : conf->defaultUser());
         for (auto const & fm : conf->facilityModuleList()) {
             try {
@@ -674,7 +674,7 @@ int main(int argc, char * argv[]) {
         try {
             Executable executable;
             {
-                std::ifstream exeFile(cmdLine.bytecodeFilename);
+                std::ifstream exeFile(cmdLine.m_bytecodeFilename);
                 exeFile >> executable;
             }
             {
@@ -712,18 +712,18 @@ int main(int argc, char * argv[]) {
         } catch (...) {
             throwWithNestedConcatException<ProgramLoadException>(
                         "Failed to load program bytecode \"",
-                        cmdLine.bytecodeFilename,
+                        cmdLine.m_bytecodeFilename,
                         "\"!");
         }
 
         sharemind::FileDescriptor fd(
                     [&cmdLine] {
-                        if (!cmdLine.outFilename) {
+                        if (!cmdLine.m_outFilename) {
                             assert(processResultsStream == STDOUT_FILENO);
                             return -1;
                         }
-                        int const fd_ = openOutFile(cmdLine.outFilename,
-                                                    cmdLine.outOpenFlag);
+                        int const fd_ = openOutFile(cmdLine.m_outFilename,
+                                                    cmdLine.m_outOpenFlag);
                         processResultsStream = fd_;
                         return fd_;
                     }());
