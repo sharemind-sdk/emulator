@@ -26,14 +26,18 @@
 #include <sharemind/SimpleUnorderedStringMap.h>
 
 
-namespace sharemind {
+using SyscallWrappers =
+        sharemind::SimpleUnorderedStringMap<
+            std::shared_ptr<sharemind::Vm::SyscallWrapper> >;
 
-extern SimpleUnorderedStringMap<std::shared_ptr<Vm::SyscallWrapper> >
-       syscallWrappers __attribute__((visibility("internal")));
-extern SimpleUnorderedStringMap<Datum> processArguments
+extern SyscallWrappers syscallWrappers __attribute__((visibility("internal")));
+
+
+using ProcessArguments = sharemind::SimpleUnorderedStringMap<sharemind::Datum>;
+
+extern ProcessArguments processArguments
         __attribute__((visibility("internal")));
-extern int processResultsStream __attribute__((visibility("internal")));
 
-} /* namespace sharemind { */
+extern int processResultsStream __attribute__((visibility("internal")));
 
 #endif /* SHAREMIND_EMULATOR_SYSCALLS_H */

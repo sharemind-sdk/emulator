@@ -339,7 +339,7 @@ public: /* Methods: */
     }
 
     void readArguments() {
-        assert(sharemind::processArguments.empty());
+        assert(processArguments.empty());
         for (;;) {
             std::string argName;
             {
@@ -359,8 +359,7 @@ public: /* Methods: */
                 argName.resize(size);
                 readData(&argName[0u], size);
             }
-            if (sharemind::processArguments.find(argName)
-                != sharemind::processArguments.end())
+            if (processArguments.find(argName) != processArguments.end())
                 throw DuplicateArgumentException();
             readString(); // Ignore protection domain name
             readString(); // Ignore type name
@@ -368,8 +367,7 @@ public: /* Methods: */
             sharemind::Datum data;
             data.resize(size);
             readData(static_cast<char *>(data.data()), size);
-            sharemind::processArguments.emplace(std::move(argName),
-                                                std::move(data));
+            processArguments.emplace(std::move(argName), std::move(data));
         }
     }
 

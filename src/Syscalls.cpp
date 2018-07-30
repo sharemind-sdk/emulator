@@ -35,6 +35,8 @@
 #include "EmulatorException.h"
 #include "Syscalls.h"
 
+using sharemind::Vm;
+
 #define EMULATOR_SYSCALL(name) \
     void name( \
             std::vector<::SharemindCodeBlock> & args, \
@@ -46,7 +48,6 @@
 #define PASS_SYSCALL(name, to) \
     EMULATOR_SYSCALL(name) { return (to)(args, refs, crefs, returnValue, c); }
 
-namespace sharemind {
 namespace {
 
 #pragma GCC diagnostic push
@@ -64,9 +65,10 @@ public: /* Methods: */
     ArgumentNotFoundException(ArgumentName && argumentName)
         : m_message(
               std::make_shared<std::string>(
-                  concat("Argument \"",
-                         std::forward<ArgumentName>(argumentName),
-                         "\" not found!")))
+                  sharemind::concat(
+                      "Argument \"",
+                      std::forward<ArgumentName>(argumentName),
+                      "\" not found!")))
     {}
 
     ArgumentNotFoundException(ArgumentNotFoundException &&)
@@ -84,7 +86,7 @@ public: /* Methods: */
                     default;
 
     char const * what() const noexcept final override
-    { return assertReturn(m_message)->c_str(); }
+    { return sharemind::assertReturn(m_message)->c_str(); }
 
 private: /* Fields: */
 
@@ -124,7 +126,7 @@ inline void writeData(int const outFd, char const * buf, std::size_t size) {
 }
 
 inline void writeSwapUint64(int const outFd, std::uint64_t v) {
-    v = hostToLittleEndian(v);
+    v = sharemind::hostToLittleEndian(v);
     char d[sizeof(v)];
     memcpy(d, &v, sizeof(v));
     writeData(outFd, d, sizeof(v));
@@ -179,7 +181,8 @@ EMULATOR_SYSCALL(Process_logMicroseconds) {
     (void) crefs;
     (void) returnValue;
     (void) c;
-    std::cerr << "Global time is " << getUsTime() << " us." << std::endl;
+    std::cerr << "Global time is " << sharemind::getUsTime() << " us."
+              << std::endl;
 }
 
 /*
@@ -343,12 +346,12 @@ std::shared_ptr<Vm::SyscallWrapper> createSyscallWrapper()
 
 } // anonymous namespace
 
-SimpleUnorderedStringMap<Datum> processArguments;
+ProcessArguments processArguments;
 int processResultsStream = STDOUT_FILENO;
 
 #define BINDING_INIT(f) { #f, createSyscallWrapper<&f>() }
 
-SimpleUnorderedStringMap<std::shared_ptr<Vm::SyscallWrapper> > syscallWrappers {
+SyscallWrappers syscallWrappers {
     BINDING_INIT(blockingRandomize),
     BINDING_INIT(blockingURandomize),
     BINDING_INIT(nonblockingRandomize),
@@ -358,5 +361,3 @@ SimpleUnorderedStringMap<std::shared_ptr<Vm::SyscallWrapper> > syscallWrappers {
     BINDING_INIT(Process_logString),
     BINDING_INIT(Process_logMicroseconds)
 };
-
-} // namespace sharemind {

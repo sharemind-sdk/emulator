@@ -72,9 +72,6 @@ using sharemind::Process;
 using sharemind::SimpleUnorderedStringMap;
 using sharemind::Vm;
 
-using sharemind::syscallWrappers;
-using sharemind::processResultsStream;
-
 namespace {
 
 #pragma GCC diagnostic push
