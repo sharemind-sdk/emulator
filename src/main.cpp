@@ -522,7 +522,6 @@ int openOutFile(char const * const filename, int const openFlag) {
 
 struct CommandLineArgs {
     bool justExit = false;
-    bool haveStdin = false;
     char const * configurationFilename = nullptr;
     char const * user = nullptr;
     char const * bytecodeFilename = nullptr;
@@ -636,6 +635,8 @@ inline CommandLineArgs parseCommandLine(int const argc,
     programName = argv[0u];
     CommandLineArgs r;
     InputStream inputData;
+    bool haveStdin = false;
+
     for (std::size_t i = 1u; i < static_cast<std::size_t>(argc); i++) {
         char const * opt = argv[i];
         if (opt[0u] != '-') {
@@ -759,10 +760,10 @@ parseCommandLine_version:
 
 parseCommandLine_stdin:
 
-        if (r.haveStdin)
+        if (haveStdin)
             throw UsageException{"Multiple --stdin arguments given!"};
         inputData.writeFile(STDIN_FILENO, "<STDIN>");
-        r.haveStdin = true;
+        haveStdin = true;
         continue;
 
 parseCommandLine_cstr:
