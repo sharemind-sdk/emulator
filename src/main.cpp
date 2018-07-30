@@ -116,10 +116,8 @@ DEFINE_EXCEPTION_CONST_MSG(MultipleLinkingUnitsNotSupportedException,
 DEFINE_EXCEPTION_STR(UndefinedPdBindException);
 DEFINE_EXCEPTION_STR(ProgramLoadException);
 struct GracefulException {};
-struct WriteIntegralArgumentException {};
 DEFINE_EXCEPTION_CONST_MSG(SigEmptySetException, "sigemptyset() failed!");
 DEFINE_EXCEPTION_CONST_MSG(SigActionException, "sigaction() failed!");
-DEFINE_EXCEPTION_CONST_MSG(InputException, "Invalid input to program!");
 DEFINE_EXCEPTION_CONST_MSG(ModuleImplementationLimitsReachedException,
                            "Module implementation limits reached!");
 DEFINE_EXCEPTION_CONST_MSG(ModuleErrorException, "Programming fault in the module!");
@@ -330,6 +328,26 @@ private: /* Fields: */
 
 class InputStream {
 
+public: /* Types: */
+
+    SHAREMIND_DECLARE_EXCEPTION_NOINLINE(EmulatorException, Exception);
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wunused-function"
+    #ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wunused-member-function"
+    #endif
+    SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception,
+                                                   IntegralParseException);
+    SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception,
+                                                   NotEnoughInputException);
+    SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception,
+                                                   DuplicateArgumentException);
+    #ifdef __clang__
+    #pragma clang diagnostic pop
+    #endif
+    #pragma GCC diagnostic pop
+
 private: /* Types: */
 
     enum State { INIT, BUFFER, FILE, STDIN };
@@ -381,7 +399,7 @@ public: /* Methods: */
         std::istringstream iss{std::string{input}};
         T integer;
         if ((iss >> integer).fail())
-            throw WriteIntegralArgumentException{};
+            throw IntegralParseException();
         writeIntegral<T, bigEndian>(integer);
     }
 
@@ -399,7 +417,7 @@ public: /* Methods: */
             buf = static_cast<char *>(buf) + r;
             size -= r;
         }
-        throw InputException();
+        throw NotEnoughInputException();
     }
 
     inline std::uint64_t readSwapUint64() {
@@ -435,7 +453,7 @@ public: /* Methods: */
                 // Peek:
                 try {
                     readData(buf, 1u);
-                } catch (InputException const &) {
+                } catch (NotEnoughInputException const &) {
                     break;
                 }
                 readData(&buf[1u], sizeof(std::uint64_t) - 1u);
@@ -448,7 +466,7 @@ public: /* Methods: */
                 readData(&argName[0u], size);
             }
             if (processArguments.find(argName) != processArguments.end())
-                throw InputException{};
+                throw DuplicateArgumentException();
             readString(); // Ignore protection domain name
             readString(); // Ignore type name
             std::size_t const size = readSize();
@@ -474,6 +492,24 @@ private: /* Fields: */
     std::list<InputData *> m_data;
 
 };
+SHAREMIND_DEFINE_EXCEPTION_NOINLINE(EmulatorException,
+                                    InputStream::,
+                                    Exception);
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(Exception,
+                                              InputStream::,
+                                              NotEnoughInputException,
+                                              "Not enought input!");
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
+        Exception,
+        InputStream::,
+        IntegralParseException,
+        "Failed to parse integral from input!");
+SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
+        Exception,
+        InputStream::,
+        DuplicateArgumentException,
+        "Duplicate argument(s) given in input!");
+
 
 int openOutFile(char const * const filename, int const openFlag) {
     int const fd = ::open(filename,
@@ -776,7 +812,7 @@ parseCommandLine_xstr:
     parseCommandLine_ ## argname: \
         try { \
             inputData.writeIntegral<std::type ## _t, big>(argument); \
-        } catch (WriteIntegralArgumentException const &) { \
+        } catch (InputStream::IntegralParseException const &) { \
             throwConcatException<UsageException>( \
                         "Invalid --" #argname "=VALUE argument given: ", \
                         argument); \
