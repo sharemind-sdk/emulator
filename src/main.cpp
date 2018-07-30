@@ -34,6 +34,7 @@
 #include <sharemind/Concat.h>
 #include <sharemind/Exception.h>
 #include <sharemind/ExceptionMacros.h>
+#include <sharemind/FileDescriptor.h>
 #include <sharemind/libexecutable/Executable.h>
 #include <sharemind/libfmodapi/FacilityModuleApi.h>
 #include <sharemind/libmodapi/libmodapicxx.h>
@@ -43,7 +44,6 @@
 #include <sharemind/libvm/Vm.h>
 #include <sharemind/MakeUnique.h>
 #include <sharemind/module-apis/api_0x1.h>
-#include <sharemind/ScopeExit.h>
 #include <sharemind/SimpleUnorderedStringMap.h>
 #include <signal.h>
 #include <sstream>
@@ -667,18 +667,17 @@ int main(int argc, char * argv[]) {
                         "\"!");
         }
 
-        int const fd = [&cmdLine] {
-            if (!cmdLine.outFilename) {
-                assert(processResultsStream == STDOUT_FILENO);
-                return -1;
-            }
-            int const fd_ = openOutFile(cmdLine.outFilename,
-                                        cmdLine.outOpenFlag);
-            processResultsStream = fd_;
-            return fd_;
-        }();
-        SHAREMIND_SCOPE_EXIT(if (fd != -1) ::close(fd));
-
+        sharemind::FileDescriptor fd(
+                    [&cmdLine] {
+                        if (!cmdLine.outFilename) {
+                            assert(processResultsStream == STDOUT_FILENO);
+                            return -1;
+                        }
+                        int const fd_ = openOutFile(cmdLine.outFilename,
+                                                    cmdLine.outOpenFlag);
+                        processResultsStream = fd_;
+                        return fd_;
+                    }());
         {
             auto processFacilities(
                 fmodapi.createProcessFacilityFinder()->processFacilityMap());
