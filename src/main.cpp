@@ -233,8 +233,8 @@ public: /* Methods: */
                 assert(r == -1);
                 if ((errno != EAGAIN) && (errno != EINTR))
                     NESTED_SYSTEM_ERROR(OutputFileException,
-                                        "write() failed to output file",
-                                        filename);
+                                        "write() failed to output file \"",
+                                        filename, "\"!");
             }
         } while (size > 0u);
     }
@@ -273,8 +273,8 @@ public: /* Methods: */
             assert(r == -1);
             if ((errno != EAGAIN) && (errno != EINTR))
                 NESTED_SYSTEM_ERROR(InputFileException,
-                                    "Unable to read() from input file",
-                                    m_filename);
+                                    "Unable to read() from input file \"",
+                                    m_filename, "\"!");
         }
     }
 
@@ -298,8 +298,8 @@ public: /* Methods: */
                 assert(rr == -1);
                 if ((errno != EAGAIN) && (errno != EINTR))
                     NESTED_SYSTEM_ERROR(InputFileException,
-                                        "Unable to read() given input file",
-                                        m_filename);
+                                        "Unable to read() given input file \"",
+                                        m_filename, "\"!");
             }
         }
     }
@@ -308,15 +308,14 @@ public: /* Methods: */
         char * const realPath = ::realpath(filename, nullptr);
         if (!realPath)
             NESTED_SYSTEM_ERROR(InputFileOpenException,
-                                "realpath() failed",
-                                filename);
+                                "realpath() failed on \"", filename, "\"!");
         SHAREMIND_SCOPE_EXIT(::free(realPath));
         int const fd = ::open(realPath, O_RDONLY);
         if (fd != -1)
             return fd;
         NESTED_SYSTEM_ERROR(InputFileOpenException,
-                            "Unable to open() given input file",
-                            filename);
+                            "Unable to open() given input file \"", filename,
+                            "\"!");
     }
 
 private: /* Fields: */
@@ -517,8 +516,8 @@ int openOutFile(char const * const filename, int const openFlag) {
                           S_IRUSR | S_IWUSR | S_IRGRP);
     if (fd == -1)
         NESTED_SYSTEM_ERROR(OutputFileOpenException,
-                            "Unable to open() given output file",
-                            filename);
+                            "Unable to open() given output file \"", filename,
+                            "\"!");
     return fd;
 }
 
@@ -864,8 +863,8 @@ parseCommandLine_file:
             if (ret != 0) {
                 assert(ret == -1);
                 NESTED_SYSTEM_ERROR(InputFileOpenException,
-                                    "Unable to fstat() given input file",
-                                    argument);
+                                    "Unable to fstat() given input file \"",
+                                    argument, "\"!");
             }
             using UnsignedOffT = std::make_unsigned<off_t>::type;
             static_assert(static_cast<UnsignedOffT>(
