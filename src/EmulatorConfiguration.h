@@ -20,21 +20,20 @@
 #ifndef SHAREMIND_EMULATOR_EMULATORCONFIGURATION_H
 #define SHAREMIND_EMULATOR_EMULATORCONFIGURATION_H
 
+#include <sharemind/libconfiguration/Configuration.h>
+
 #include <exception>
 #include <sharemind/Exception.h>
 #include <sharemind/ExceptionMacros.h>
-#include <sharemind/libconfiguration/Configuration.h>
 #include <string>
 #include <utility>
 #include <vector>
 #include "AccessPolicy.h"
 
 
-namespace sharemind {
-
 /** \brief Parses and stores the configuration for a miner from a file. */
 class __attribute__ ((visibility("internal"))) EmulatorConfiguration
-    : public Configuration
+    : public sharemind::Configuration
 {
 
 public: /* Types: */
@@ -133,7 +132,5 @@ private: /* Fields: */
     std::vector<ProtectionDomainEntry> m_protectionDomainList;
 
 }; /* class EmulatorConfiguration { */
-
-} /* namespace sharemind { */
 
 #endif /* SHAREMIND_EMULATOR_EMULATORCONFIGURATION_H */

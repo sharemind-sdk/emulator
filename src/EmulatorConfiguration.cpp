@@ -26,8 +26,6 @@
 #include <sharemind/libconfiguration/XdgBaseDirectory.h>
 
 
-namespace sharemind {
-
 SHAREMIND_DEFINE_EXCEPTION_NOINLINE(sharemind::Exception,
                                     EmulatorConfiguration::,
                                     Exception);
@@ -128,5 +126,3 @@ EmulatorConfiguration::defaultAccessPolicyTryPaths() {
                     "emulator-access-control"));
     return tryPaths;
 }
-
-} // namespace sharemind {

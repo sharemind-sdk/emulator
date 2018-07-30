@@ -72,7 +72,6 @@ using sharemind::Process;
 using sharemind::SimpleUnorderedStringMap;
 using sharemind::Vm;
 
-using sharemind::EmulatorConfiguration;
 using sharemind::syscallWrappers;
 using sharemind::processResultsStream;
 
