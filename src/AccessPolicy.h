@@ -35,8 +35,6 @@
 #include <vector>
 
 
-namespace sharemind {
-
 class AccessPolicy {
 
 public: /* Types: */
@@ -44,15 +42,16 @@ public: /* Types: */
     SHAREMIND_DECLARE_EXCEPTION_CONST_STDSTRING_NOINLINE(sharemind::Exception,
                                                          Exception);
 
-    using ObjectPermissions = AccessControlProcessFacility::ObjectPermissions;
+    using ObjectPermissions =
+            sharemind::AccessControlProcessFacility::ObjectPermissions;
 
     /** Mapping of object permissions namespace names to object permissions
         maps: */
     using ObjectPermissionsNamespaces =
-            SimpleUnorderedStringMap<ObjectPermissions>;
+            sharemind::SimpleUnorderedStringMap<ObjectPermissions>;
 
     using UserMapping =
-            SimpleUnorderedStringMap<
+            sharemind::SimpleUnorderedStringMap<
                     std::shared_ptr<ObjectPermissionsNamespaces> >;
 
 public: /* Methods: */
@@ -72,7 +71,5 @@ private: /* Fields: */
     UserMapping m_userMapping;
 
 }; /* class AccessPolicy */
-
-} /* namespace sharemind { */
 
 #endif /* SHAREMIND_EMULATOR_ACCESSPOLICY_H */

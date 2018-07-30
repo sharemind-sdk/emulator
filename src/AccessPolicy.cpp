@@ -28,13 +28,13 @@
 #include <utility>
 
 
-namespace sharemind {
-
 namespace {
 
 template <typename ... Args>
-inline AccessPolicy::Exception constructApe(Args && ... args)
-{ return AccessPolicy::Exception(concat(std::forward<Args>(args)...)); }
+inline AccessPolicy::Exception constructApe(Args && ... args) {
+    return AccessPolicy::Exception(
+                sharemind::concat(std::forward<Args>(args)...));
+}
 
 template <typename ... Args>
 SHAREMIND_GCC_NORETURN_PART1
@@ -153,6 +153,7 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_STDSTRING_NOINLINE(sharemind::Exception,
                                                     Exception);
 
 AccessPolicy::AccessPolicy(std::vector<std::string> const & tryPaths) {
+    using namespace sharemind;
     Configuration const conf(tryPaths);
     auto loadException(constructApe("Failed to load access policies from \"",
                                     conf.filename(), "\"!"));
@@ -300,5 +301,3 @@ AccessPolicy::AccessPolicy(AccessPolicy const & copy) = default;
 AccessPolicy & AccessPolicy::operator=(AccessPolicy &&) = default;
 
 AccessPolicy & AccessPolicy::operator=(AccessPolicy const & copy) = default;
-
-} /* namespace sharemind { */
