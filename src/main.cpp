@@ -653,11 +653,11 @@ inline CommandLineArgs parseCommandLine(int const argc,
         opt++;
 
 #define LONGOPT(name,label) \
-    if ((strcmp(opt, name) == 0)) { \
+    if ((std::strcmp(opt, name) == 0)) { \
         goto parseCommandLine_ ## label; \
     } else (void) 0
 #define LONGOPT_ARG(name,label) \
-    if ((strncmp(opt, name "=", sizeof(name)) == 0)) { \
+    if ((std::strncmp(opt, name "=", sizeof(name)) == 0)) { \
         argument = opt + sizeof(name); \
         goto parseCommandLine_ ## label; \
     } else (void) 0
