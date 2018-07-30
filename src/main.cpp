@@ -767,7 +767,7 @@ parseCommandLine_stdin:
 
 parseCommandLine_cstr:
 
-        inputData.writeData(argument, argument + strlen(argument));
+        inputData.writeData(argument, argument + std::strlen(argument));
         continue;
 
 parseCommandLine_xstr:
@@ -842,7 +842,7 @@ PROCESS_SINT(8, 64);
 parseCommandLine_str:
 
         {
-            auto const size = strlen(argument);
+            auto const size = std::strlen(argument);
             argumentSizeCheck(size);
             inputData.writeIntegral(static_cast<std::uint64_t>(size));
             if (size > 0u)
