@@ -32,6 +32,7 @@
 #include <system_error>
 #include <type_traits>
 #include <unistd.h>
+#include "EmulatorException.h"
 #include "Syscalls.h"
 
 #define EMULATOR_SYSCALL(name) \
@@ -55,7 +56,7 @@ namespace {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-member-function"
 #endif
-class ArgumentNotFoundException: public Exception {
+class ArgumentNotFoundException: public EmulatorException {
 
 public: /* Methods: */
 
@@ -90,9 +91,10 @@ private: /* Fields: */
     std::shared_ptr<std::string const> m_message;
 
 };
-SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(Exception, InvalidCallException);
+SHAREMIND_DECLARE_EXCEPTION_CONST_MSG_NOINLINE(EmulatorException,
+                                               InvalidCallException);
 SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
-        Exception,,
+        EmulatorException,,
         InvalidCallException,
         "Invalid arguments, references, constant references or return value "
         "specified for system call!")
