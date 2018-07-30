@@ -346,7 +346,7 @@ std::shared_ptr<Vm::SyscallWrapper> createSyscallWrapper()
 
 } // anonymous namespace
 
-ProcessArguments processArguments;
+CommandLineArguments::ProcessArguments processArguments;
 int processResultsStream = STDOUT_FILENO;
 
 #define BINDING_INIT(f) { #f, createSyscallWrapper<&f>() }

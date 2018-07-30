@@ -335,8 +335,8 @@ public: /* Methods: */
         return str;
     }
 
-    ProcessArguments readArguments() {
-        ProcessArguments r;
+    CommandLineArguments::ProcessArguments readArguments() {
+        CommandLineArguments::ProcessArguments r;
         for (;;) {
             std::string argName;
             {

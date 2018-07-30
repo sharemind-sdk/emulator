@@ -21,10 +21,15 @@
 #define SHAREMIND_EMULATOR_COMMANDLINEARGUMENTS_H
 
 #include <fcntl.h>
-#include "Syscalls.h"
+#include <sharemind/Datum.h>
+#include <sharemind/SimpleUnorderedStringMap.h>
 
 
 struct CommandLineArguments {
+
+    using ProcessArguments =
+            sharemind::SimpleUnorderedStringMap<sharemind::Datum>;
+
     ProcessArguments processArguments;
     char const * configurationFilename = nullptr;
     char const * user = nullptr;
@@ -32,6 +37,7 @@ struct CommandLineArguments {
     char const * outFilename = nullptr;
     int outOpenFlag = O_EXCL;
     bool justExit = false;
+
 };
 
 int openOutFile(char const * const filename, int const openFlag);

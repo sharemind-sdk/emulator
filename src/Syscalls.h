@@ -21,9 +21,9 @@
 #define SHAREMIND_EMULATOR_SYSCALLS_H
 
 #include <memory>
-#include <sharemind/Datum.h>
 #include <sharemind/libvm/Vm.h>
 #include <sharemind/SimpleUnorderedStringMap.h>
+#include "CommandLineArguments.h"
 
 
 using SyscallWrappers =
@@ -32,10 +32,7 @@ using SyscallWrappers =
 
 extern SyscallWrappers syscallWrappers __attribute__((visibility("internal")));
 
-
-using ProcessArguments = sharemind::SimpleUnorderedStringMap<sharemind::Datum>;
-
-extern ProcessArguments processArguments
+extern CommandLineArguments::ProcessArguments processArguments
         __attribute__((visibility("internal")));
 
 extern int processResultsStream __attribute__((visibility("internal")));
