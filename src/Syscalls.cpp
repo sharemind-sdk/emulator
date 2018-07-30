@@ -128,7 +128,7 @@ inline void writeData(int const outFd, char const * buf, std::size_t size) {
 inline void writeSwapUint64(int const outFd, std::uint64_t v) {
     v = sharemind::hostToLittleEndian(v);
     char d[sizeof(v)];
-    memcpy(d, &v, sizeof(v));
+    std::memcpy(d, &v, sizeof(v));
     writeData(outFd, d, sizeof(v));
 }
 

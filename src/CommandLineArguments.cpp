@@ -99,7 +99,7 @@ public: /* Methods: */
         if (dataLeft == 0u)
             return 0u;
         std::size_t const toRead = std::min(size, dataLeft);
-        ::memcpy(buf, m_data.data() + m_pos, toRead);
+        std::memcpy(buf, m_data.data() + m_pos, toRead);
         m_pos += toRead;
         return toRead;
     }
@@ -282,7 +282,7 @@ public: /* Methods: */
         value = bigEndian ? sharemind::hostToBigEndian(value)
                           : sharemind::hostToLittleEndian(value);
         char data[sizeof(value)];
-        ::memcpy(data, &value, sizeof(value));
+        std::memcpy(data, &value, sizeof(value));
         writeData(data, data + sizeof(value));
     }
 
@@ -316,7 +316,7 @@ public: /* Methods: */
         char buf[sizeof(std::uint64_t)];
         readData(buf, sizeof(std::uint64_t));
         std::uint64_t out;
-        ::memcpy(&out, buf, sizeof(std::uint64_t));
+        std::memcpy(&out, buf, sizeof(std::uint64_t));
         return sharemind::littleEndianToHost(out);
     }
 
@@ -350,7 +350,7 @@ public: /* Methods: */
                 }
                 readData(&buf[1u], sizeof(std::uint64_t) - 1u);
                 std::uint64_t out;
-                ::memcpy(&out, buf, sizeof(std::uint64_t));
+                std::memcpy(&out, buf, sizeof(std::uint64_t));
                 static_assert(std::numeric_limits<std::uint64_t>::max()
                               <= std::numeric_limits<std::size_t>::max(), "");
                 std::size_t const size = sharemind::littleEndianToHost(out);
