@@ -21,9 +21,11 @@
 #define SHAREMIND_EMULATOR_COMMANDLINEARGUMENTS_H
 
 #include <fcntl.h>
+#include "Syscalls.h"
 
 
 struct CommandLineArguments {
+    ProcessArguments processArguments;
     char const * configurationFilename = nullptr;
     char const * user = nullptr;
     char const * bytecodeFilename = nullptr;

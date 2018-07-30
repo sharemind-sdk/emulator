@@ -476,6 +476,7 @@ int main(int argc, char * argv[]) {
         auto const cmdLine(parseCommandLine(argc, argv));
         if (cmdLine.justExit)
             return EXIT_SUCCESS;
+        processArguments = std::move(cmdLine.processArguments);
 
         std::shared_ptr<EmulatorConfiguration const> conf(
                     cmdLine.configurationFilename

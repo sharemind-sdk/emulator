@@ -46,7 +46,6 @@
 #include <utility>
 #include <vector>
 #include "EmulatorException.h"
-#include "Syscalls.h"
 
 
 #ifndef SHAREMIND_EMULATOR_VERSION
@@ -336,8 +335,8 @@ public: /* Methods: */
         return str;
     }
 
-    void readArguments() {
-        assert(processArguments.empty());
+    ProcessArguments readArguments() {
+        ProcessArguments r;
         for (;;) {
             std::string argName;
             {
@@ -357,7 +356,7 @@ public: /* Methods: */
                 argName.resize(size);
                 readData(&argName[0u], size);
             }
-            if (processArguments.find(argName) != processArguments.end())
+            if (r.find(argName) != r.end())
                 throw DuplicateArgumentException();
             readString(); // Ignore protection domain name
             readString(); // Ignore type name
@@ -365,8 +364,9 @@ public: /* Methods: */
             sharemind::Datum data;
             data.resize(size);
             readData(static_cast<char *>(data.data()), size);
-            processArguments.emplace(std::move(argName), std::move(data));
+            r.emplace(std::move(argName), std::move(data));
         }
+        return r;
     }
 
     void writeToFileDescriptor(int const fd, char const * const filename) {
@@ -802,6 +802,6 @@ parseCommandLine_printArgs:
     }
     if (!r.bytecodeFilename)
         throw UsageException{"No bytecode FILENAME argument given!"};
-    inputData.readArguments();
+    r.processArguments = inputData.readArguments();
     return r;
 }
