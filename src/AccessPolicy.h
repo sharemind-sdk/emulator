@@ -37,8 +37,6 @@
 
 namespace sharemind {
 
-class ServerAuthData;
-
 class AccessPolicy {
 
 public: /* Types: */
