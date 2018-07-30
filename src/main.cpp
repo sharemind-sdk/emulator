@@ -78,9 +78,6 @@ using namespace sharemind;
 
 namespace {
 
-constexpr std::size_t buf8k_size = 8192u;
-char buf8k[buf8k_size];
-
 SHAREMIND_DECLARE_EXCEPTION_NOINLINE(sharemind::Exception, EmulatorException);
 SHAREMIND_DEFINE_EXCEPTION_NOINLINE(sharemind::Exception,, EmulatorException);
 
@@ -286,6 +283,9 @@ public: /* Methods: */
     void writeToFileDescriptor(int const fd,
                                char const * const filename) final override
     {
+        constexpr std::size_t buf8k_size = 8192u;
+        static char buf8k[buf8k_size];
+
         for (;;) {
             auto const rr = ::read(m_fd, buf8k, buf8k_size);
             if (rr == 0u) {
