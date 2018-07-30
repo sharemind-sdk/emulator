@@ -72,8 +72,6 @@ DEFINE_EXCEPTION_STR(InputFileException);
 #endif
 #pragma GCC diagnostic pop
 
-char const * programName = nullptr;
-
 struct InputData {
     virtual ~InputData() noexcept {}
     virtual std::size_t read(void * buf, std::size_t size) = 0;
@@ -404,7 +402,7 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
         DuplicateArgumentException,
         "Duplicate argument(s) given in input!");
 
-inline void printUsage() {
+inline void printUsage(char const * const programName) {
     using namespace std;
     cerr << "Usage: " << programName
          << " [OPTIONS] FILENAME" << endl
@@ -520,7 +518,6 @@ CommandLineArguments parseCommandLine(int const argc,
                                       char const * const argv[])
 {
     assert(argc >= 1);
-    programName = argv[0u];
     CommandLineArguments r;
     InputStream inputData;
     bool haveStdin = false;
@@ -636,7 +633,7 @@ parseCommandLine_user:
 
 parseCommandLine_help:
 
-        printUsage();
+        printUsage(argv[0u]);
         r.justExit = true;
         return r;
 
