@@ -403,68 +403,59 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
         "Duplicate argument(s) given in input!");
 
 inline void printUsage(char const * const programName) {
-    using namespace std;
-    cerr << "Usage: " << programName
-         << " [OPTIONS] FILENAME" << endl
-         << "Runs the bytecode specified by FILENAME in an execution context "
-            "specified by the given configuration file given by the --conf= "
-            "argument." << endl << endl
-         << "Required arguments:" << endl << endl
-         << "  --conf=FILENAME, -c  Reads the configuration file from the "
-            "given location." << endl << endl
-         << "Optional arguments:" << endl << endl
-         << "  --help, --usage, -h  Displays this help and exits successfully."
-         << endl << endl
-         << "  --version, -V        Outputs version information and exits "
-            "successfully." << endl << endl
-         << "  --stdin, -t          Writes the contents from the standard "
-            "input to the argument stream. Can be given only once."
-         << endl << endl
-         << "  --cstr=STRING, -s    Writes the literal STRING to the argument "
-            "stream." << endl << endl
-         << "  --xstr=HEXBYTES, -x  Writes the given hexadecimal bytes to the "
-            "argument stream." << endl << endl
-         << "  --int16=VALUE, --int32=VALUE, --int64=VALUE, --uint16=VALUE"
-            ", --uint32=VALUE, --uint64=VALUE" << endl
-         << "                       Writes the decimal VALUE to the argument "
-            "stream as a little-endian value of the respective type."
-         << endl << endl
-         << "  --bint16=VALUE, --bint32=VALUE, --bint64=VALUE, --buint16=VALUE"
-            ", --buint32=VALUE, --buint64=VALUE" << endl
-         << "                       Writes the decimal VALUE to the argument "
-            "stream as a big-endian value of the respective type."
-         << endl << endl
-         << "  --size=VALUE, -z     Identical to --uint64=VALUE."
-         << endl << endl
-         << "  -2                   Identical to --size=2 --uint16=VALUE."
-         << endl << endl
-         << "  -4                   Identical to --size=4 --uint32=VALUE."
-         << endl << endl
-         << "  -8                   Identical to --size=8 --uint64=VALUE."
-         << endl << endl
-         << "  --str=STRING, -S     Identical to --size=VALUE --cstr=STRING, "
-            "where VALUE is the length of the given STRING." << endl << endl
-         << "  --cfile=FILENAME, -i" << endl
-         << "                       Writes the given binary file to the "
-            "argument stream." << endl << endl
-         << "  --file=FILENAME, -I  Identical to --size=VALUE "
-            "--cfile=FILENAME, where VALUE is the size of the given file."
-         << endl << endl
-         << "  --outFile=FILENAME, -o" << endl
-         << "                       Writes the output to the given file "
-            "instead of the standard output." << endl << endl
-         << "  --force, -f          Overwrites (truncates) the file given by "
-            "--outFile=FILENAME if the file already exists." << endl << endl
-         << "  --append, -a         Appends to the file given by "
-            "--outFile=FILENAME if the file already exists." << endl << endl
-         << "  --discard, -d        Identical to --append --outFile=/dev/null."
-         << endl << endl
-         << "  --printArgs, -p      Stops processing any further arguments, "
-            "outputs the argument stream and exits successfully."
-         << endl << endl
-         << "  --user, -u           Specifies the user to use for access "
+    std::cout
+         << "Usage: " << programName << " [OPTIONS] FILENAME\n"
+            "Runs the bytecode specified by FILENAME in an execution context "
+                "specified by the given configuration file given by the "
+                "--conf= argument.\n\n"
+            "Required arguments:\n\n"
+            "  --conf=FILENAME, -c  Reads the configuration file from the "
+            "given location.\n\n"
+            "Optional arguments:\n\n"
+            "  --help, --usage, -h  Displays this help and exits "
+                "successfully.\n\n"
+            "  --version, -V        Outputs version information and exits "
+                "successfully.\n\n"
+            "  --stdin, -t          Writes the contents from the standard "
+                "input to the argument stream. Can be given only once.\n\n"
+            "  --cstr=STRING, -s    Writes the literal STRING to the argument "
+                "stream.\n\n"
+            "  --xstr=HEXBYTES, -x  Writes the given hexadecimal bytes to the "
+                "argument stream.\n\n"
+            "  --int16=VALUE, --int32=VALUE, --int64=VALUE, --uint16=VALUE"
+                ", --uint32=VALUE, --uint64=VALUE\n"
+            "                       Writes the decimal VALUE to the argument "
+                "stream as a little-endian value of the respective type.\n\n"
+            "  --bint16=VALUE, --bint32=VALUE, --bint64=VALUE, --buint16=VALUE"
+                ", --buint32=VALUE, --buint64=VALUE\n"
+            "                       Writes the decimal VALUE to the argument "
+                "stream as a big-endian value of the respective type.\n\n"
+            "  --size=VALUE, -z     Identical to --uint64=VALUE.\n\n"
+            "  -2                   Identical to --size=2 --uint16=VALUE.\n\n"
+            "  -4                   Identical to --size=4 --uint32=VALUE.\n\n"
+            "  -8                   Identical to --size=8 --uint64=VALUE.\n\n"
+            "  --str=STRING, -S     Identical to --size=VALUE --cstr=STRING, "
+                "where VALUE is the length of the given STRING.\n\n"
+            "  --cfile=FILENAME, -i\n"
+            "                       Writes the given binary file to the "
+                "argument stream.\n\n"
+            "  --file=FILENAME, -I  Identical to --size=VALUE "
+                "--cfile=FILENAME, where VALUE is the size of the given "
+                "file.\n\n"
+            "  --outFile=FILENAME, -o\n"
+            "                       Writes the output to the given file "
+                "instead of the standard output.\n\n"
+            "  --force, -f          Overwrites (truncates) the file given by "
+                "--outFile=FILENAME if the file already exists.\n\n"
+            "  --append, -a         Appends to the file given by "
+                "--outFile=FILENAME if the file already exists.\n\n"
+            "  --discard, -d        Identical to --append "
+                "--outFile=/dev/null.\n\n"
+            "  --printArgs, -p      Stops processing any further arguments, "
+                "outputs the argument stream and exits successfully.\n\n"
+            "  --user, -u           Specifies the user to use for access "
             "control checks. Overrides the default given by the "
-            "AccessControl.DefaultUser configuration option." << endl << endl;
+            "AccessControl.DefaultUser configuration option.\n\n" << std::flush;
 }
 
 #ifdef __clang__
