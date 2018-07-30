@@ -21,6 +21,7 @@
 #define SHAREMIND_EMULATOR_SYSCALLS_H
 
 #include <memory>
+#include <sharemind/codeblock.h>
 #include <sharemind/libvm/Vm.h>
 #include "CommandLineArguments.h"
 
