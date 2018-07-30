@@ -521,12 +521,12 @@ int openOutFile(char const * const filename, int const openFlag) {
 }
 
 struct CommandLineArgs {
-    bool justExit = false;
     char const * configurationFilename = nullptr;
     char const * user = nullptr;
     char const * bytecodeFilename = nullptr;
     char const * outFilename = nullptr;
     int outOpenFlag = O_EXCL;
+    bool justExit = false;
 };
 
 inline void printUsage() {
