@@ -35,15 +35,6 @@
 #include "EmulatorException.h"
 #include "Syscalls.h"
 
-using sharemind::Vm;
-
-#define EMULATOR_SYSCALL(name) \
-    void name( \
-            std::vector<::SharemindCodeBlock> & args, \
-            std::vector<Vm::Reference> & refs, \
-            std::vector<Vm::ConstReference> & crefs, \
-            SharemindCodeBlock * const returnValue, \
-            Vm::SyscallContext & c)
 
 #define PASS_SYSCALL(name, to) \
     EMULATOR_SYSCALL(name) { return (to)(args, refs, crefs, returnValue, c); }
@@ -166,6 +157,8 @@ EMULATOR_SYSCALL(nonblockingRandomize_) {
     returnValue->uint64[0u] = r;
 }
 
+} // anonymous namespace
+
 PASS_SYSCALL(blockingRandomize,
              blockingRandomize_<sharemind::cryptographicRandom>);
 PASS_SYSCALL(blockingURandomize,
@@ -207,7 +200,7 @@ EMULATOR_SYSCALL(Process_argument) {
         char const * end() const noexcept
         { return static_cast<char const *>(cref.data.get()) + cref.size - 1u; }
 
-        Vm::ConstReference const & cref;
+        sharemind::Vm::ConstReference const & cref;
     };
     auto const it = processArguments.find(MyStringRange{crefs[0u]});
     if (it == processArguments.end())
@@ -311,53 +304,6 @@ EMULATOR_SYSCALL(Process_logString) {
     }
 }
 
-using SyscallFunctionPtr =
-        void (*)(
-                std::vector<::SharemindCodeBlock> & arguments,
-                std::vector<Vm::Reference> & references,
-                std::vector<Vm::ConstReference> & constReferences,
-                SharemindCodeBlock * returnValue,
-                Vm::SyscallContext & context);
-
-template <SyscallFunctionPtr F>
-class SyscallWrapper final: public Vm::SyscallWrapper {
-
-public: /* Methods: */
-
-    void operator()(
-            std::vector<::SharemindCodeBlock> & arguments,
-            std::vector<Vm::Reference> & references,
-            std::vector<Vm::ConstReference> & constReferences,
-            SharemindCodeBlock * returnValue,
-            Vm::SyscallContext & context) const final override
-    {
-        return (*F)(arguments,
-                    references,
-                    constReferences,
-                    returnValue,
-                    context);
-    }
-
-};
-
-template <SyscallFunctionPtr F>
-std::shared_ptr<Vm::SyscallWrapper> createSyscallWrapper()
-{ return std::make_shared<SyscallWrapper<F> >(); }
-
-} // anonymous namespace
-
 CommandLineArguments::ProcessArguments processArguments;
 int processResultsStream = STDOUT_FILENO;
 
-#define BINDING_INIT(f) { #f, createSyscallWrapper<&f>() }
-
-SyscallWrappers syscallWrappers {
-    BINDING_INIT(blockingRandomize),
-    BINDING_INIT(blockingURandomize),
-    BINDING_INIT(nonblockingRandomize),
-    BINDING_INIT(nonblockingURandomize),
-    BINDING_INIT(Process_argument),
-    BINDING_INIT(Process_setResult),
-    BINDING_INIT(Process_logString),
-    BINDING_INIT(Process_logMicroseconds)
-};

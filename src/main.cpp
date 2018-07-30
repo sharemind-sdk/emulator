@@ -449,6 +449,39 @@ private: /* Fields: */
 
 };
 
+using SyscallFunctionPtr =
+        void (*)(
+                std::vector<::SharemindCodeBlock> & arguments,
+                std::vector<sharemind::Vm::Reference> & references,
+                std::vector<sharemind::Vm::ConstReference> & constReferences,
+                SharemindCodeBlock * returnValue,
+                sharemind::Vm::SyscallContext & context);
+
+template <SyscallFunctionPtr F>
+class SyscallWrapper final: public sharemind::Vm::SyscallWrapper {
+
+public: /* Methods: */
+
+    void operator()(
+            std::vector<::SharemindCodeBlock> & arguments,
+            std::vector<sharemind::Vm::Reference> & references,
+            std::vector<sharemind::Vm::ConstReference> & constReferences,
+            SharemindCodeBlock * returnValue,
+            sharemind::Vm::SyscallContext & context) const final override
+    {
+        return (*F)(arguments,
+                    references,
+                    constReferences,
+                    returnValue,
+                    context);
+    }
+
+};
+
+template <SyscallFunctionPtr F>
+std::shared_ptr<sharemind::Vm::SyscallWrapper> createSyscallWrapper()
+{ return std::make_shared<SyscallWrapper<F> >(); }
+
 } // anonymous namespace
 
 int main(int argc, char * argv[]) {
@@ -497,6 +530,22 @@ int main(int argc, char * argv[]) {
                             "\"!");
             }
         }
+
+        using SyscallWrappers =
+                sharemind::SimpleUnorderedStringMap<
+                    std::shared_ptr<sharemind::Vm::SyscallWrapper> >;
+        #define BINDING_INIT(f) { #f, createSyscallWrapper<&f>() }
+        SyscallWrappers syscallWrappers{
+            BINDING_INIT(blockingRandomize),
+            BINDING_INIT(blockingURandomize),
+            BINDING_INIT(nonblockingRandomize),
+            BINDING_INIT(nonblockingURandomize),
+            BINDING_INIT(Process_argument),
+            BINDING_INIT(Process_setResult),
+            BINDING_INIT(Process_logString),
+            BINDING_INIT(Process_logMicroseconds)
+        };
+        #undef BINDING_INIT
 
         /** \todo Remove this when libmodapi supports passing facilities by
                   smart pointers: */
@@ -613,7 +662,7 @@ int main(int argc, char * argv[]) {
 
         Vm vm;
         vm.setSyscallFinder(
-                    [](std::string const & name) {
+                    [&syscallWrappers](std::string const & name) {
                         auto const it = syscallWrappers.find(name);
                         return (it != syscallWrappers.end())
                                 ? it->second

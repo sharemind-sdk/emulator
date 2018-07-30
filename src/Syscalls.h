@@ -22,15 +22,26 @@
 
 #include <memory>
 #include <sharemind/libvm/Vm.h>
-#include <sharemind/SimpleUnorderedStringMap.h>
 #include "CommandLineArguments.h"
 
 
-using SyscallWrappers =
-        sharemind::SimpleUnorderedStringMap<
-            std::shared_ptr<sharemind::Vm::SyscallWrapper> >;
+#define EMULATOR_SYSCALL(name) \
+    void name( \
+            std::vector<::SharemindCodeBlock> & args, \
+            std::vector<sharemind::Vm::Reference> & refs, \
+            std::vector<sharemind::Vm::ConstReference> & crefs, \
+            SharemindCodeBlock * const returnValue, \
+            sharemind::Vm::SyscallContext & c)
 
-extern SyscallWrappers syscallWrappers __attribute__((visibility("internal")));
+EMULATOR_SYSCALL(blockingRandomize) __attribute__((visibility("internal")));
+EMULATOR_SYSCALL(blockingURandomize) __attribute__((visibility("internal")));
+EMULATOR_SYSCALL(nonblockingRandomize) __attribute__((visibility("internal")));
+EMULATOR_SYSCALL(nonblockingURandomize) __attribute__((visibility("internal")));
+EMULATOR_SYSCALL(Process_logMicroseconds)
+        __attribute__((visibility("internal")));
+EMULATOR_SYSCALL(Process_argument) __attribute__((visibility("internal")));
+EMULATOR_SYSCALL(Process_setResult) __attribute__((visibility("internal")));
+EMULATOR_SYSCALL(Process_logString) __attribute__((visibility("internal")));
 
 extern CommandLineArguments::ProcessArguments processArguments
         __attribute__((visibility("internal")));
