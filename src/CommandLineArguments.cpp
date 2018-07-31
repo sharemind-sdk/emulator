@@ -801,5 +801,7 @@ parseCommandLine_printArgs:
     }
     if (!m_bytecodeFilename)
         throw UsageException{"No bytecode FILENAME argument given!"};
+    if (!*m_bytecodeFilename)
+        throw UsageException("Empty bytecode FILENAME given!");
     m_processArguments = inputData.readArguments();
 }
