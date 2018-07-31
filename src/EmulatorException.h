@@ -17,6 +17,9 @@
  * For further information, please contact us at sharemind@cyber.ee.
  */
 
+#ifndef SHAREMIND_EMULATOR_EMULATOREXCEPTION_H
+#define SHAREMIND_EMULATOR_EMULATOREXCEPTION_H
+
 #include <exception>
 #include <sharemind/Concat.h>
 #include <sharemind/Exception.h>
@@ -74,3 +77,5 @@ inline void throwWithNestedConcatException(Args && ... args)
             std::throw_with_nested(__VA_ARGS__); \
         } \
     } while(false)
+
+#endif /* SHAREMIND_EMULATOR_EMULATOREXCEPTION_H */
