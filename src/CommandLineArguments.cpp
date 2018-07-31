@@ -454,8 +454,9 @@ inline void printUsage(char const * const programName) {
             "  --printArgs, -p      Stops processing any further arguments, "
                 "outputs the argument stream and exits successfully.\n\n"
             "  --user, -u           Specifies the user to use for access "
-            "control checks. Overrides the default given by the "
-            "AccessControl.DefaultUser configuration option.\n\n" << std::flush;
+                "control checks. Overrides the default given by the "
+                "AccessControl.DefaultUser configuration option.\n\n"
+         << std::flush;
 }
 
 #ifdef __clang__
