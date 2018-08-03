@@ -587,8 +587,8 @@ CommandLineArguments::CommandLineArguments(int const argc,
         LONGOPT("usage", help);
         LONGOPT("version", version);
         LONGOPT("stdin", stdin);
-        LONGOPT("cstr", cstr);
-        LONGOPT("xstr", xstr);
+        LONGOPT_ARG("cstr", cstr, "a STRING");
+        LONGOPT_ARG("xstr", xstr, "a HEXBYTES");
 
 #define HANDLE_INTARG(type) LONGOPT_ARG(#type, type, "a VALUE"); \
                             LONGOPT_ARG("b" #type, b ## type, "a VALUE")
