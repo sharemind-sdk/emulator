@@ -567,14 +567,22 @@ CommandLineArguments::CommandLineArguments(int const argc,
     if ((std::strcmp(opt, name) == 0)) { \
         goto parseCommandLine_ ## label; \
     } else (void) 0
-#define LONGOPT_ARG(name,label) \
-    if ((std::strncmp(opt, name "=", sizeof(name)) == 0)) { \
-        argument = opt + sizeof(name); \
-        goto parseCommandLine_ ## label; \
+#define LONGOPT_ARG(name,label, aName) \
+    if ((std::strncmp(opt, name, sizeof(name) - 1u) == 0)) { \
+        if (opt[sizeof(name) - 1u] == '=') { \
+            argument = opt + sizeof(name); \
+            goto parseCommandLine_ ## label; \
+        } else { \
+            if (++i >= static_cast<std::size_t>(argc)) \
+                throw UsageException{"--" name " option is missing " aName \
+                                     " argument"}; \
+            argument = argv[i]; \
+            goto parseCommandLine_ ## label; \
+        } \
     } else (void) 0
 
-        LONGOPT_ARG("conf", conf);
-        LONGOPT_ARG("user", user);
+        LONGOPT_ARG("conf", conf, "a FILENAME");
+        LONGOPT_ARG("user", user, "a USER");
         LONGOPT("help", help);
         LONGOPT("usage", help);
         LONGOPT("version", version);
@@ -582,8 +590,8 @@ CommandLineArguments::CommandLineArguments(int const argc,
         LONGOPT("cstr", cstr);
         LONGOPT("xstr", xstr);
 
-#define HANDLE_INTARG(type) LONGOPT_ARG(#type, type); \
-                            LONGOPT_ARG("b" #type, b ## type)
+#define HANDLE_INTARG(type) LONGOPT_ARG(#type, type, "a VALUE"); \
+                            LONGOPT_ARG("b" #type, b ## type, "a VALUE")
         HANDLE_INTARG(int16);
         HANDLE_INTARG(int32);
         HANDLE_INTARG(int64);
@@ -591,11 +599,11 @@ CommandLineArguments::CommandLineArguments(int const argc,
         HANDLE_INTARG(uint32);
         HANDLE_INTARG(uint64);
 
-        LONGOPT_ARG("size", size);
-        LONGOPT_ARG("str", str);
-        LONGOPT_ARG("cfile", cfile);
-        LONGOPT_ARG("file", file);
-        LONGOPT_ARG("outFile", outFile);
+        LONGOPT_ARG("size", size, "a VALUE");
+        LONGOPT_ARG("str", str, "a STRING");
+        LONGOPT_ARG("cfile", cfile, "a FILENAME");
+        LONGOPT_ARG("file", file, "a FILENAME");
+        LONGOPT_ARG("outFile", outFile, "a FILENAME");
         LONGOPT("printArgs", printArgs);
         LONGOPT("force", force);
         LONGOPT("append", append);
