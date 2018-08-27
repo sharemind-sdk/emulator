@@ -402,7 +402,14 @@ SHAREMIND_DEFINE_EXCEPTION_CONST_MSG_NOINLINE(
         DuplicateArgumentException,
         "Duplicate argument(s) given in input!");
 
-inline void printUsage(char const * const programName) {
+inline std::string programNameFromArgv0(char const * const argv0) {
+    if (!argv0 || !*argv0)
+        return SHAREMIND_EMULATOR_PROGRAM_NAME;
+    return argv0;
+}
+
+inline void printUsage(std::string const & programName) {
+    assert(!programName.empty());
     std::cout
          << "Usage: " << programName << " [OPTIONS] FILENAME\n"
             "Runs the bytecode specified by FILENAME in an execution context "
@@ -632,13 +639,14 @@ parseCommandLine_user:
 
 parseCommandLine_help:
 
-        printUsage(argv[0u]);
+        printUsage(programNameFromArgv0(argv[0u]));
         m_justExit = true;
         return;
 
 parseCommandLine_version:
 
-        std::cerr << argv[0u] << " " SHAREMIND_EMULATOR_VERSION << std::endl;
+        std::cerr << programNameFromArgv0(argv[0u])
+                  << " " SHAREMIND_EMULATOR_VERSION << std::endl;
         m_justExit = true;
         return;
 

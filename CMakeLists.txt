@@ -75,6 +75,7 @@ SharemindAddExecutable("sharemind-emulator"
         ${SharemindModuleApis_INCLUDE_DIRS}
     COMPILE_DEFINITIONS
         "SHAREMIND_EMULATOR_VERSION=\"${SharemindEmulator_NVERSION}\""
+        "SHAREMIND_EMULATOR_PROGRAM_NAME=\"sharemind-emulator\""
     LEGACY_DEFINITIONS
         ${SharemindCxxHeaders_DEFINITIONS}
         ${SharemindLibAccessControlProcessFacility_DEFINITIONS}
