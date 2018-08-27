@@ -645,7 +645,7 @@ parseCommandLine_help:
 
 parseCommandLine_version:
 
-        std::cerr << programNameFromArgv0(argv[0u])
+        std::cout << programNameFromArgv0(argv[0u])
                   << " " SHAREMIND_EMULATOR_VERSION << std::endl;
         m_justExit = true;
         return;
