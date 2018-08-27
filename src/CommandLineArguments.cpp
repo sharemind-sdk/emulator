@@ -572,7 +572,7 @@ CommandLineArguments::CommandLineArguments(int const argc,
         if (opt[sizeof(name) - 1u] == '=') { \
             argument = opt + sizeof(name); \
             goto parseCommandLine_ ## label; \
-        } else { \
+        } else if (opt[sizeof(name) - 1u] == '\0') { \
             if (++i >= static_cast<std::size_t>(argc)) \
                 throw UsageException{"--" name " option is missing " aName \
                                      " argument"}; \
