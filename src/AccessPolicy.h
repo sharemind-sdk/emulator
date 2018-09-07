@@ -26,7 +26,6 @@
 #include <sharemind/Exception.h>
 #include <sharemind/ExceptionMacros.h>
 #include <sharemind/Hash.h>
-#include <sharemind/Optional.h>
 #include <sharemind/SimpleUnorderedStringMap.h>
 #include <sharemind/UnorderedMap.h>
 #include <string>
