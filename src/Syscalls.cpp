@@ -230,7 +230,7 @@ EMULATOR_SYSCALL(Process_argument) {
   No return value
 */
 EMULATOR_SYSCALL(Process_setResult) {
-    typedef char const * const CCP;
+    using CCP = char const *;
     if ((crefs.size() != 4u) || (args.size() != 2u) || returnValue
         || !refs.empty()
         || crefs[0u].size == 0u || crefs[1u].size == 0u || crefs[2u].size == 0u
