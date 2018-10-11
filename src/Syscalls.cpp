@@ -63,18 +63,18 @@ public: /* Methods: */
     {}
 
     ArgumentNotFoundException(ArgumentNotFoundException &&)
-            noexcept(std::is_nothrow_move_constructible<Exception>::value) =
-                    default;
+            noexcept(std::is_nothrow_move_constructible<
+                            EmulatorException>::value) = default;
     ArgumentNotFoundException(ArgumentNotFoundException const &)
-            noexcept(std::is_nothrow_copy_constructible<Exception>::value) =
-                    default;
+            noexcept(std::is_nothrow_copy_constructible<
+                            EmulatorException>::value) = default;
 
     ArgumentNotFoundException & operator=(ArgumentNotFoundException &&)
-            noexcept(std::is_nothrow_move_assignable<Exception>::value) =
-                    default;
+            noexcept(std::is_nothrow_move_assignable<
+                            EmulatorException>::value) = default;
     ArgumentNotFoundException & operator=(ArgumentNotFoundException const &)
-            noexcept(std::is_nothrow_copy_assignable<Exception>::value) =
-                    default;
+            noexcept(std::is_nothrow_copy_assignable<
+                            EmulatorException>::value) = default;
 
     char const * what() const noexcept final override
     { return sharemind::assertReturn(m_message)->c_str(); }
