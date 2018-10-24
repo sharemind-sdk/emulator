@@ -675,6 +675,8 @@ int main(int argc, char * argv[]) {
             Executable executable;
             {
                 std::ifstream exeFile(cmdLine.m_bytecodeFilename);
+                exeFile.exceptions(std::ifstream::failbit
+                                   | std::ifstream::badbit);
                 exeFile >> executable;
             }
             {
