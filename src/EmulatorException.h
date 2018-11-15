@@ -46,15 +46,11 @@ Exception constructConcatException(Args && ... args)
 { return Exception(sharemind::concat(std::forward<Args>(args)...)); }
 
 template <typename Exception, typename ... Args>
-SHAREMIND_GCC_NORETURN_PART1
-inline void throwConcatException(Args && ... args) SHAREMIND_GCC_NORETURN_PART2
+[[noreturn]] inline void throwConcatException(Args && ... args)
 { throw constructConcatException<Exception>(std::forward<Args>(args)...); }
 
 template <typename Exception, typename ... Args>
-SHAREMIND_GCC_NORETURN_PART1
-inline void throwWithNestedConcatException(Args && ... args)
-        SHAREMIND_GCC_NORETURN_PART2
-{
+[[noreturn]] inline void throwWithNestedConcatException(Args && ... args) {
     std::throw_with_nested(
                 constructConcatException<Exception>(
                     std::forward<Args>(args)...));

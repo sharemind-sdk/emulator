@@ -22,7 +22,6 @@
 #include <algorithm>
 #include <cassert>
 #include <sharemind/Concat.h>
-#include <sharemind/compiler-support/GccNoreturn.h>
 #include <sharemind/libconfiguration/Configuration.h>
 #include <utility>
 
@@ -36,13 +35,11 @@ inline AccessPolicy::Exception constructApe(Args && ... args) {
 }
 
 template <typename ... Args>
-SHAREMIND_GCC_NORETURN_PART1
-inline void throwApe(Args && ... args) SHAREMIND_GCC_NORETURN_PART2
+[[noreturn]] inline void throwApe(Args && ... args)
 { throw constructApe(std::forward<Args>(args)...); }
 
 template <typename ... Args>
-SHAREMIND_GCC_NORETURN_PART1
-inline void throwWithNestedApe(Args && ... args) SHAREMIND_GCC_NORETURN_PART2
+[[noreturn]] inline void throwWithNestedApe(Args && ... args)
 { std::throw_with_nested(constructApe(std::forward<Args>(args)...)); }
 
 template <typename SpecTermAdder>

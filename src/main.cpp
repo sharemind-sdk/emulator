@@ -30,7 +30,6 @@
 #include <memory>
 #include <new>
 #include <sharemind/AccessControlProcessFacility.h>
-#include <sharemind/compiler-support/GccNoreturn.h>
 #include <sharemind/Concat.h>
 #include <sharemind/Exception.h>
 #include <sharemind/ExceptionMacros.h>

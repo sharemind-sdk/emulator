@@ -27,8 +27,6 @@
 #include <iostream>
 #include <limits>
 #include <list>
-#include <sharemind/compiler-support/GccNoreturn.h>
-#include <sharemind/compiler-support/GccPR54277.h>
 #include <sharemind/Concat.h>
 #include <sharemind/Concepts.h>
 #include <sharemind/Datum.h>
@@ -253,8 +251,8 @@ public: /* Methods: */
                 : [this]() -> BufferInputData & {
                     auto const bit = new BufferInputData{};
                     try {
-                        SHAREMIND_GCCPR54277_WORKAROUND m_data.push_back(bit);
-                        SHAREMIND_GCCPR54277_WORKAROUND m_state = BUFFER;
+                        m_data.push_back(bit);
+                        m_state = BUFFER;
                         return *bit;
                     } catch (...) {
                         delete bit;
