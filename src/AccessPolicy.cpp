@@ -24,7 +24,6 @@
 #include <sharemind/Concat.h>
 #include <sharemind/compiler-support/GccNoreturn.h>
 #include <sharemind/libconfiguration/Configuration.h>
-#include <sharemind/MakeUnique.h>
 #include <utility>
 
 
