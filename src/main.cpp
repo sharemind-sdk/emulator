@@ -42,7 +42,6 @@
 #include <sharemind/libvm/Program.h>
 #include <sharemind/libvm/Process.h>
 #include <sharemind/libvm/Vm.h>
-#include <sharemind/MakeUnique.h>
 #include <sharemind/module-apis/api_0x1.h>
 #include <sharemind/SimpleUnorderedStringMap.h>
 #include <signal.h>
@@ -62,7 +61,6 @@
 using sharemind::assertReturn;
 using sharemind::Executable;
 using sharemind::FacilityModuleApi;
-using sharemind::makeUnique;
 using sharemind::Module;
 using sharemind::ModuleApi;
 using sharemind::Pd;
@@ -336,7 +334,8 @@ public: /* Methods: */
                         == std::numeric_limits<std::size_t>::max()) \
                         throw std::bad_array_new_length(); \
                     which ## onHeap = \
-                        makeUnique<oldClass[]>(which ## erences.size() + 1u); \
+                            std::make_unique<oldClass[]>( \
+                                    which ## erences.size() + 1u); \
                     which ## s = which ## onHeap.get(); \
                 } \
                 auto ptr = which ## s; \
@@ -513,9 +512,9 @@ int main(int argc, char * argv[]) {
 
         std::shared_ptr<EmulatorConfiguration const> conf(
                     cmdLine.m_configurationFilename
-                    ? makeUnique<EmulatorConfiguration>(
+                    ? std::make_unique<EmulatorConfiguration>(
                           cmdLine.m_configurationFilename)
-                    : makeUnique<EmulatorConfiguration>());
+                    : std::make_unique<EmulatorConfiguration>());
         AccessControlProcessFacilityImpl aclFacility(*conf,
                                                      cmdLine.m_user
                                                      ? cmdLine.m_user
