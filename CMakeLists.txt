@@ -42,7 +42,7 @@ FIND_PACKAGE(SharemindModuleApis 1.0.0 REQUIRED)
 # Emulator:
 SharemindNormalizeVersion(VERSION "${PROJECT_VERSION}"
                           OUTPUT_VARIABLE SharemindEmulator_NVERSION)
-SharemindSetCxx11CompileOptions()
+SharemindSetCxx14CompileOptions()
 FILE(GLOB_RECURSE SharemindEmulator_SOURCES
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 FILE(GLOB_RECURSE SharemindEmulator_HEADERS
