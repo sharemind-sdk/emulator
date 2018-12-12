@@ -21,6 +21,7 @@
 #define SHAREMIND_EMULATOR_EMULATOREXCEPTION_H
 
 #include <exception>
+#include <sharemind/compiler-support/GccNoreturn.h>
 #include <sharemind/Concat.h>
 #include <sharemind/Exception.h>
 #include <sharemind/ExceptionMacros.h>
