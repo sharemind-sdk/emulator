@@ -27,7 +27,6 @@
 #include <iostream>
 #include <limits>
 #include <list>
-#include <sharemind/compiler-support/GccNoreturn.h>
 #include <sharemind/compiler-support/GccPR54277.h>
 #include <sharemind/Concat.h>
 #include <sharemind/Concepts.h>
