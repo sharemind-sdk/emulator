@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <sharemind/compiler-support/GccNoreturn.h>
 #include <sharemind/Concat.h>
 #include <sharemind/libconfiguration/Configuration.h>
 #include <utility>
