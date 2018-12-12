@@ -41,7 +41,6 @@
 #include <sharemind/libvm/Program.h>
 #include <sharemind/libvm/Process.h>
 #include <sharemind/libvm/Vm.h>
-#include <sharemind/MakeUnique.h>
 #include <sharemind/module-apis/api_0x1.h>
 #include <sharemind/SimpleUnorderedStringMap.h>
 #include <signal.h>
@@ -55,6 +54,7 @@
 #include "CommandLineArguments.h"
 #include "EmulatorException.h"
 #include "EmulatorConfiguration.h"
+#include "MakeUnique.h"
 #include "Syscalls.h"
 
 

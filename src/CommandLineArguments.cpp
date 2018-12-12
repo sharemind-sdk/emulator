@@ -27,7 +27,6 @@
 #include <iostream>
 #include <limits>
 #include <list>
-#include <sharemind/compiler-support/GccPR54277.h>
 #include <sharemind/Concat.h>
 #include <sharemind/Concepts.h>
 #include <sharemind/Datum.h>
@@ -45,6 +44,7 @@
 #include <utility>
 #include <vector>
 #include "EmulatorException.h"
+#include "GccPR54277.h"
 
 
 #ifndef SHAREMIND_EMULATOR_VERSION

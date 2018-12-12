@@ -22,9 +22,9 @@
 #include <algorithm>
 #include <cassert>
 #include <sharemind/Concat.h>
-#include <sharemind/compiler-support/GccNoreturn.h>
 #include <sharemind/libconfiguration/Configuration.h>
 #include <utility>
+#include "GccNoreturn.h"
 
 
 namespace {

@@ -42,7 +42,14 @@ FIND_PACKAGE(SharemindModuleApis 1.0.0 REQUIRED)
 # Emulator:
 SharemindNormalizeVersion(VERSION "${PROJECT_VERSION}"
                           OUTPUT_VARIABLE SharemindEmulator_NVERSION)
-SharemindSetCxx11CompileOptions()
+IF("${SharemindCxxHeaders_VERSION}" VERSION_LESS "0.6.0")
+    SharemindSetCxx11CompileOptions()
+ELSEIF("${SharemindCMakeHelpers_VERSION}" VERSION_LESS "1.4")
+    MESSAGE(FATAL_ERROR
+            "Incompatible combination of CMakeHelpers and CxxHeaders versions!")
+ELSE()
+    SharemindSetCxx14CompileOptions()
+ENDIF()
 FILE(GLOB_RECURSE SharemindEmulator_SOURCES
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 FILE(GLOB_RECURSE SharemindEmulator_HEADERS
