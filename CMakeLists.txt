@@ -144,6 +144,11 @@ IF(HELP2MAN)
     GenerateManPage()
 ENDIF()
 
+# Configuration files:
+INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packaging/configs/sharemind/"
+        DESTINATION "/etc/sharemind/"
+        COMPONENT "bin"
+        EXCLUDE_FROM_ALL)
 
 # Packaging:
 SharemindSetupPackaging()
@@ -165,6 +170,8 @@ SharemindAddComponentPackage(bin
         "libsharemind-random (>= 0.3.0)"
         "libsharemind-vm (>= 0.8.0)"
         "libstdc++6 (>= 4.8.0)"
+    DEB_EXTRA_CONTROL_FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/packaging/debian/conffiles"
 )
 SharemindAddComponentPackage(debug
     NAME "sharemind-emulator-dbg"
