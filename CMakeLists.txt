@@ -170,6 +170,10 @@ SharemindAddComponentPackage(bin
         "libsharemind-random (>= 0.3.0)"
         "libsharemind-vm (>= 0.8.0)"
         "libstdc++6 (>= 4.8.0)"
+    DEB_RECOMMENDS
+        "libsharemind-facility-loghard (>= 0.4.0)"
+        "libsharemind-facility-datastoremanager (>= 0.2.0)"
+        "libsharemind-facility-executionprofiler (>= 0.2.0)"
     DEB_EXTRA_CONTROL_FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/packaging/debian/conffiles"
 )
