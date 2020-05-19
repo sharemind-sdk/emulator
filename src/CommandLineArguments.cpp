@@ -351,8 +351,10 @@ public: /* Methods: */
                 static_assert(std::numeric_limits<std::uint64_t>::max()
                               <= std::numeric_limits<std::size_t>::max(), "");
                 std::size_t const size = sharemind::littleEndianToHost(out);
-                argName.resize(size);
-                readData(&argName[0u], size);
+                if (size > 0) {
+                    argName.resize(size);
+                    readData(&argName[0u], size);
+                }
             }
             if (r.find(argName) != r.end())
                 throw DuplicateArgumentException();
@@ -360,8 +362,10 @@ public: /* Methods: */
             readString(); // Ignore type name
             std::size_t const size = readSize();
             sharemind::Datum data;
-            data.resize(size);
-            readData(static_cast<char *>(data.data()), size);
+            if (size > 0) {
+                data.resize(size);
+                readData(static_cast<char *>(data.data()), size);
+            }
             r.emplace(std::move(argName), std::move(data));
         }
         return r;
