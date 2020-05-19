@@ -15,15 +15,15 @@ Configuration = Logger emulator-profile.csv
 
 [Module executionprofiler]
 File = libsharemind_mod_executionprofiler.so
-#Configuration =
+;Configuration =
 
 [Module algorithms]
 File = libsharemind_mod_algorithms.so
-#Configuration =
+;Configuration =
 
 [Module shared3p]
 File = libsharemind_mod_shared3p_emu.so
-#Configuration =
+;Configuration =
 
 [ProtectionDomain pd_shared3p]
 Kind = shared3p
