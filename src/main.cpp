@@ -404,7 +404,7 @@ SharemindProcessFacility vmProcessFacility{
         return sizeof(localPid);
     },
     [](const SharemindProcessFacility *) noexcept -> char const *
-            { return ""; },
+            { return clientAuth.c_str(); },
     [](const SharemindProcessFacility *) noexcept -> char const *
             { return ""; }
 };
@@ -514,10 +514,10 @@ int main(int argc, char * argv[]) {
                     ? std::make_unique<EmulatorConfiguration>(
                           cmdLine.m_configurationFilename)
                     : std::make_unique<EmulatorConfiguration>());
-        AccessControlProcessFacilityImpl aclFacility(*conf,
-                                                     cmdLine.m_user
-                                                     ? cmdLine.m_user
-                                                     : conf->defaultUser());
+        clientAuth = cmdLine.m_user
+                     ? cmdLine.m_user
+                     : conf->defaultUser();
+        AccessControlProcessFacilityImpl aclFacility(*conf, clientAuth);
         for (auto const & fm : conf->facilityModuleList()) {
             try {
                 fmodapi.addModule(fm.filename, fm.configurationFile);
@@ -538,6 +538,7 @@ int main(int argc, char * argv[]) {
             BINDING_INIT(blockingURandomize),
             BINDING_INIT(nonblockingRandomize),
             BINDING_INIT(nonblockingURandomize),
+            BINDING_INIT(Process_clientAuth),
             BINDING_INIT(Process_argument),
             BINDING_INIT(Process_setResult),
             BINDING_INIT(Process_logString),

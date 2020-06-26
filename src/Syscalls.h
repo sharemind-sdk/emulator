@@ -23,6 +23,7 @@
 #include <memory>
 #include <sharemind/codeblock.h>
 #include <sharemind/libvm/Vm.h>
+#include <string>
 #include "CommandLineArguments.h"
 
 
@@ -40,12 +41,15 @@ EMULATOR_SYSCALL(nonblockingRandomize) __attribute__((visibility("internal")));
 EMULATOR_SYSCALL(nonblockingURandomize) __attribute__((visibility("internal")));
 EMULATOR_SYSCALL(Process_logMicroseconds)
         __attribute__((visibility("internal")));
+EMULATOR_SYSCALL(Process_clientAuth) __attribute__((visibility("internal")));
 EMULATOR_SYSCALL(Process_argument) __attribute__((visibility("internal")));
 EMULATOR_SYSCALL(Process_setResult) __attribute__((visibility("internal")));
 EMULATOR_SYSCALL(Process_logString) __attribute__((visibility("internal")));
 
 extern CommandLineArguments::ProcessArguments processArguments
         __attribute__((visibility("internal")));
+
+extern std::string clientAuth __attribute__((visibility("internal")));
 
 extern int processResultsStream __attribute__((visibility("internal")));
 

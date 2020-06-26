@@ -179,6 +179,28 @@ EMULATOR_SYSCALL(Process_logMicroseconds) {
 }
 
 /*
+  Optional ref parameter: output data buffer
+  Return value: argument output data length
+*/
+EMULATOR_SYSCALL(Process_clientAuth) {
+    (void) c;
+
+    if (!returnValue || !args.empty() || !crefs.empty() || (refs.size() >= 2u))
+        throw InvalidCallException();
+
+    static_assert(sizeof(std::size_t) <= sizeof(std::uint64_t), "");
+
+    returnValue->uint64[0u] = clientAuth.size();
+    if (!refs.empty()) {
+        assert(refs.size() == 1u);
+        auto const & ref = refs[0u];
+        assert(ref.size > 0u);
+        std::size_t const toCopy = std::min(ref.size, clientAuth.size());
+        std::memcpy(ref.data.get(), clientAuth.c_str(), toCopy);
+    }
+}
+
+/*
   Mandatory cref parameter: argument key string
   Optional ref parameter: argument data buffer
   Return value: argument data length
@@ -305,5 +327,6 @@ EMULATOR_SYSCALL(Process_logString) {
 }
 
 CommandLineArguments::ProcessArguments processArguments;
+std::string clientAuth;
 int processResultsStream = STDOUT_FILENO;
 
