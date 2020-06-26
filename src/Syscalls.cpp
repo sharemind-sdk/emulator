@@ -113,7 +113,7 @@ inline void writeData(int const outFd, char const * buf, std::size_t size) {
                     throw std::system_error{errno, std::system_category()};
             }
         }
-    };
+    }
 }
 
 inline void writeSwapUint64(int const outFd, std::uint64_t v) {
