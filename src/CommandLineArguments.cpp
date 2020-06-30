@@ -515,9 +515,9 @@ int openOutFile(char const * const filename, int const openFlag) {
     return fd;
 }
 
-CommandLineArguments::CommandLineArguments(int const argc,
-                                           char const * const argv[])
-{
+CommandLineArguments::CommandLineArguments() = default;
+
+void CommandLineArguments::init(int const argc, char const * const argv[]) {
     assert(argc >= 1);
     InputStream inputData;
     bool haveStdin = false;

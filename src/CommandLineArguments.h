@@ -34,7 +34,9 @@ struct CommandLineArguments {
 
 /* Methods: */
 
-    CommandLineArguments(int const argc, char const * const argv[]);
+    CommandLineArguments();
+
+    void init(int const argc, char const * const argv[]);
 
 /* Types: */
 

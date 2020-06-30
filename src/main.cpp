@@ -71,6 +71,8 @@ using sharemind::Vm;
 
 namespace {
 
+CommandLineArguments cmdLine;
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #ifdef __clang__
@@ -406,7 +408,7 @@ SharemindProcessFacility vmProcessFacility{
     [](const SharemindProcessFacility *) noexcept -> char const *
             { return clientAuth.c_str(); },
     [](const SharemindProcessFacility *) noexcept -> char const *
-            { return ""; }
+            { return cmdLine.m_bytecodeFilename; }
 };
 
 class AccessControlProcessFacilityImpl final
@@ -504,7 +506,7 @@ int main(int argc, char * argv[]) {
             r = sigaction(SIGPIPE, &sa, nullptr);
         }
 
-        CommandLineArguments cmdLine(argc, argv);
+        cmdLine.init(argc, argv);
         if (cmdLine.m_justExit)
             return EXIT_SUCCESS;
         processArguments = std::move(cmdLine.m_processArguments);
@@ -718,7 +720,7 @@ int main(int argc, char * argv[]) {
         }
 
         sharemind::FileDescriptor fd(
-                    [&cmdLine] {
+                    [] {
                         if (!cmdLine.m_outFilename) {
                             assert(processResultsStream == STDOUT_FILENO);
                             return -1;
