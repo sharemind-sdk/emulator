@@ -553,7 +553,7 @@ void CommandLineArguments::init(int const argc, char const * const argv[]) {
             switch (opt[0u]) {
                 SHORTOPT_ARG('c', "A -c", "a FILENAME", conf);
                 SHORTOPT_ARG('u', "An -u", "a USERNAME", user);
-                SHORTOPT_ARG('P', "An -P", "a STRING", programName);
+                SHORTOPT_ARG('P', "A -P", "a STRING", programName);
                 SHORTOPT('h', help);
                 SHORTOPT('V', version);
                 SHORTOPT('t', stdin);
