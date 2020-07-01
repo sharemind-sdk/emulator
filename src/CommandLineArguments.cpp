@@ -462,10 +462,11 @@ inline void printUsage(std::string const & programName) {
                 "--outFile=/dev/null.\n\n"
             "  --printArgs, -p      Stops processing any further arguments, "
                 "outputs the argument stream and exits successfully.\n\n"
-            "  --user, -u           Specifies the user to use for access "
+            "  --user=USERNAME, -u  Specifies the user to use for access "
                 "control checks. Overrides the default given by the "
                 "AccessControl.DefaultUser configuration option.\n\n"
-            "  --programName, -P    Specifies the stringto return as the "
+            "  --programName=STRING, -P\n"
+            "                       Specifies the string to return as the "
                 "program name of the running process (e.g. via the process "
                 "facility). Defaults to the bytecode filename specified.\n\n"
          << std::flush;
