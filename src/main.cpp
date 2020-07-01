@@ -408,7 +408,7 @@ SharemindProcessFacility vmProcessFacility{
     [](const SharemindProcessFacility *) noexcept -> char const *
             { return clientAuth.c_str(); },
     [](const SharemindProcessFacility *) noexcept -> char const *
-            { return cmdLine.m_bytecodeFilename; }
+            { return cmdLine.m_programName; }
 };
 
 class AccessControlProcessFacilityImpl final

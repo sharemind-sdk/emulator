@@ -465,6 +465,9 @@ inline void printUsage(std::string const & programName) {
             "  --user, -u           Specifies the user to use for access "
                 "control checks. Overrides the default given by the "
                 "AccessControl.DefaultUser configuration option.\n\n"
+            "  --programName, -P    Specifies the stringto return as the "
+                "program name of the running process (e.g. via the process "
+                "facility). Defaults to the bytecode filename specified.\n\n"
          << std::flush;
 }
 
@@ -550,6 +553,7 @@ void CommandLineArguments::init(int const argc, char const * const argv[]) {
             switch (opt[0u]) {
                 SHORTOPT_ARG('c', "A -c", "a FILENAME", conf);
                 SHORTOPT_ARG('u', "An -u", "a USERNAME", user);
+                SHORTOPT_ARG('P', "An -P", "a STRING", programName);
                 SHORTOPT('h', help);
                 SHORTOPT('V', version);
                 SHORTOPT('t', stdin);
@@ -592,6 +596,7 @@ void CommandLineArguments::init(int const argc, char const * const argv[]) {
 
         LONGOPT_ARG("conf", conf, "a FILENAME");
         LONGOPT_ARG("user", user, "a USER");
+        LONGOPT_ARG("programName", programName, "a STRING");
         LONGOPT("help", help);
         LONGOPT("usage", help);
         LONGOPT("version", version);
@@ -637,6 +642,15 @@ parseCommandLine_user:
         if (m_user)
             throw UsageException{"Multiple --user=USERNAME arguments given!"};
         m_user = argument;
+        continue;
+
+parseCommandLine_programName:
+
+        assert(argument);
+        if (m_programName)
+            throw UsageException(
+                    "Multiple --programName=STRING arguments given!");
+        m_programName = argument;
         continue;
 
 parseCommandLine_help:
@@ -821,5 +835,8 @@ parseCommandLine_printArgs:
         throw UsageException{"No bytecode FILENAME argument given!"};
     if (!*m_bytecodeFilename)
         throw UsageException("Empty bytecode FILENAME given!");
+
+    if (!m_programName)
+        m_programName = m_bytecodeFilename;
     m_processArguments = inputData.readArguments();
 }

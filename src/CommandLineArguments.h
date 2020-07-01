@@ -44,6 +44,7 @@ struct CommandLineArguments {
     char const * m_configurationFilename = nullptr;
     char const * m_user = nullptr;
     char const * m_bytecodeFilename = nullptr;
+    char const * m_programName = nullptr;
     char const * m_outFilename = nullptr;
     int m_outOpenFlag = O_EXCL;
     bool m_justExit = false;
