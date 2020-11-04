@@ -23,20 +23,20 @@ PROJECT(SharemindEmulator VERSION 1.4.0 LANGUAGES CXX)
 INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/config.local" OPTIONAL)
 INCLUDE("${CMAKE_CURRENT_BINARY_DIR}/config.local" OPTIONAL)
 
-FIND_PACKAGE(SharemindCMakeHelpers 1.4 REQUIRED)
+FIND_PACKAGE(SharemindCMakeHelpers 1.6 REQUIRED)
 
 
 FIND_PROGRAM(HELP2MAN help2man)
 FIND_PACKAGE(Boost 1.50 COMPONENTS system filesystem REQUIRED)
-FIND_PACKAGE(SharemindCxxHeaders 0.4.0 REQUIRED)
-FIND_PACKAGE(SharemindLibAccessControlProcessFacility 0.1.0 REQUIRED)
-FIND_PACKAGE(SharemindLibConfiguration 0.2.0 REQUIRED)
-FIND_PACKAGE(SharemindLibFModapi 0.2.0 REQUIRED)
-FIND_PACKAGE(SharemindLibModapiCxx 0.3.0 REQUIRED)
-FIND_PACKAGE(SharemindLibProcessFacility 0.1.0 REQUIRED)
-FIND_PACKAGE(SharemindLibRandom 0.3.0 REQUIRED)
-FIND_PACKAGE(SharemindLibVm 0.8.0 REQUIRED)
-FIND_PACKAGE(SharemindModuleApis 1.0.0 REQUIRED)
+FIND_PACKAGE(SharemindCxxHeaders 0.8.0 REQUIRED)
+FIND_PACKAGE(SharemindLibAccessControlProcessFacility 0.3.0 REQUIRED)
+FIND_PACKAGE(SharemindLibConfiguration 0.5.0 REQUIRED)
+FIND_PACKAGE(SharemindLibFModapi 0.4.0 REQUIRED)
+FIND_PACKAGE(SharemindLibModapiCxx 0.4.0 REQUIRED)
+FIND_PACKAGE(SharemindLibProcessFacility 0.2.0 REQUIRED)
+FIND_PACKAGE(SharemindLibRandom 0.5.0 REQUIRED)
+FIND_PACKAGE(SharemindLibVm 0.10.0 REQUIRED)
+FIND_PACKAGE(SharemindModuleApis 1.1.0 REQUIRED)
 
 
 # Emulator:
@@ -47,49 +47,32 @@ FILE(GLOB_RECURSE SharemindEmulator_SOURCES
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 FILE(GLOB_RECURSE SharemindEmulator_HEADERS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
-SharemindNewUniqueList(SharemindEmulator_LIBRARIES
-    ${Boost_LIBRARIES}
-    ${SharemindLibAccessControlProcessFacility_LIBRARIES}
-    ${SharemindLibConfiguration_LIBRARIES}
-    ${SharemindLibFModapi_LIBRARIES}
-    ${SharemindLibModapiCxx_LIBRARIES}
-    ${SharemindLibProcessFacility_LIBRARIES}
-    ${SharemindLibRandom_LIBRARIES}
-    ${SharemindLibVm_LIBRARIES}
-    ${SharemindModuleApis_LIBRARIES}
-)
-SharemindAddExecutable("sharemind-emulator"
+SharemindAddExecutable(sharemind-emulator
     SOURCES
         ${SharemindEmulator_SOURCES}
         ${SharemindEmulator_HEADERS}
-    INCLUDE_DIRECTORIES
-        ${Boost_INCLUDE_DIRS}
-        ${SharemindCxxHeaders_INCLUDE_DIRS}
-        ${SharemindLibAccessControlProcessFacility_INCLUDE_DIRS}
-        ${SharemindLibConfiguration_INCLUDE_DIRS}
-        ${SharemindLibFModapi_INCLUDE_DIRS}
-        ${SharemindLibModapiCxx_INCLUDE_DIRS}
-        ${SharemindLibProcessFacility_INCLUDE_DIRS}
-        ${SharemindLibRandom_INCLUDE_DIRS}
-        ${SharemindLibVm_INCLUDE_DIRS}
-        ${SharemindModuleApis_INCLUDE_DIRS}
-    COMPILE_DEFINITIONS
+    )
+TARGET_COMPILE_DEFINITIONS(sharemind-emulator
+    PRIVATE
         "SHAREMIND_EMULATOR_VERSION=\"${SharemindEmulator_NVERSION}\""
         "SHAREMIND_EMULATOR_PROGRAM_NAME=\"sharemind-emulator\""
-    LEGACY_DEFINITIONS
-        ${SharemindCxxHeaders_DEFINITIONS}
-        ${SharemindLibAccessControlProcessFacility_DEFINITIONS}
-        ${SharemindLibConfiguration_DEFINITIONS}
-        ${SharemindLibFModapi_DEFINITIONS}
-        ${SharemindLibModapiCxx_DEFINITIONS}
-        ${SharemindLibProcessFacility_DEFINITIONS}
-        ${SharemindLibRandom_DEFINITIONS}
-        ${SharemindLibVm_DEFINITIONS}
-        ${SharemindModuleApis_DEFINITIONS}
-        "-DSHAREMIND_INTERNAL_"
-    LINK_LIBRARIES
-        ${SharemindEmulator_LIBRARIES}
-)
+        "SHAREMIND_INTERNAL_"
+    )
+TARGET_LINK_LIBRARIES(sharemind-emulator
+    PRIVATE
+        Boost::boost
+        Boost::filesystem
+        Boost::system
+        Sharemind::CxxHeaders
+        Sharemind::LibAccessControlProcessFacility
+        Sharemind::LibConfiguration
+        Sharemind::LibFModapi
+        Sharemind::LibModapiCxx
+        Sharemind::LibProcessFacility
+        Sharemind::LibRandom
+        Sharemind::LibVm
+        Sharemind::ModuleApis
+    )
 
 
 # Documentation:
@@ -106,23 +89,19 @@ INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/doc/emulator.conf.example"
 
 # Manual pages:
 FUNCTION(GetEmulatorLdLibraryPath out)
-    SET(L "")
-    FOREACH(l IN LISTS SharemindEmulator_LIBRARIES)
-        STRING(STRIP "${l}" l)
-        STRING(LENGTH "${l}" len)
-        IF(${len} GREATER 2)
-            STRING(SUBSTRING "${l}" 0 2 begin)
-            IF("GenerateManPage_${begin}" STREQUAL "GenerateManPage_-L")
-                STRING(SUBSTRING "${l}" 2 -1 l)
-                IF(L)
-                    SET(L "${L}:${l}")
-                ELSE()
-                    SET(L "${l}")
-                ENDIF()
-            ENDIF()
+    SET(LD_LIBRARY_PATH)
+    GET_PROPERTY(LINK_LIBRARIES TARGET "sharemind-emulator" PROPERTY LINK_LIBRARIES)
+    FOREACH(LINK_LIBRARY IN LISTS LINK_LIBRARIES)
+        GET_PROPERTY(LINK_LIBRARY_TYPE TARGET "${LINK_LIBRARY}" PROPERTY TYPE)
+        IF("${LINK_LIBRARY_TYPE}" MATCHES "^(STATIC|MODULE|SHARED|OBJECT)_LIBRARY$")
+            GET_PROPERTY(LINK_LIBRARY TARGET "${LINK_LIBRARY}" PROPERTY LOCATION)
+            GET_FILENAME_COMPONENT(LINK_LIBRARY_DIR "${LINK_LIBRARY}" DIRECTORY)
+            LIST(APPEND LD_LIBRARY_PATH "${LINK_LIBRARY_DIR}")
         ENDIF()
     ENDFOREACH()
-    SET("${out}" "${L}" PARENT_SCOPE)
+    LIST(REMOVE_DUPLICATES LD_LIBRARY_PATH)
+    STRING(REPLACE ";" ":" LD_LIBRARY_PATH "${LD_LIBRARY_PATH}")
+    SET("${out}" "${LD_LIBRARY_PATH}" PARENT_SCOPE)
 ENDFUNCTION()
 FUNCTION(GenerateManPage)
     SET(V "${SharemindEmulator_NVERSION}")
