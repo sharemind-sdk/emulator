@@ -522,7 +522,8 @@ int openOutFile(char const * const filename, int const openFlag) {
 CommandLineArguments::CommandLineArguments() = default;
 
 void CommandLineArguments::init(int const argc, char const * const argv[]) {
-    assert(argc >= 1);
+    if (argc < 1)
+        throw UsageException("Not enough command-line arguments given!");
     InputStream inputData;
     bool haveStdin = false;
 
