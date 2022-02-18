@@ -34,7 +34,7 @@ FIND_PACKAGE(SharemindLibConfiguration 0.5.0 REQUIRED)
 FIND_PACKAGE(SharemindLibFModapi 0.5.0 REQUIRED)
 FIND_PACKAGE(SharemindLibModapiCxx 0.5.0 REQUIRED)
 FIND_PACKAGE(SharemindLibProcessFacility 0.2.0 REQUIRED)
-FIND_PACKAGE(SharemindLibRandom 0.5.0 REQUIRED)
+FIND_PACKAGE(SharemindLibRandom 0.6.0 REQUIRED)
 FIND_PACKAGE(SharemindLibVm 0.11.0 REQUIRED)
 FIND_PACKAGE(SharemindModuleApis 1.1.0 REQUIRED)
 
