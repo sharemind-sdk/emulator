@@ -35,7 +35,7 @@ FIND_PACKAGE(SharemindLibFModapi 0.5.0 REQUIRED)
 FIND_PACKAGE(SharemindLibModapiCxx 0.5.0 REQUIRED)
 FIND_PACKAGE(SharemindLibProcessFacility 0.2.0 REQUIRED)
 FIND_PACKAGE(SharemindLibRandom 0.5.0 REQUIRED)
-FIND_PACKAGE(SharemindLibVm 0.10.0 REQUIRED)
+FIND_PACKAGE(SharemindLibVm 0.11.0 REQUIRED)
 FIND_PACKAGE(SharemindModuleApis 1.1.0 REQUIRED)
 
 
@@ -146,7 +146,7 @@ SharemindAddComponentPackage(bin
         "libsharemind-fmodapi (>= 0.2.0)"
         "libsharemind-modapi (>= 0.3.0)"
         "libsharemind-random (>= 0.3.0)"
-        "libsharemind-vm (>= 0.8.0)"
+        "libsharemind-vm (>= 0.11.0)"
         "libstdc++6 (>= 4.8.0)"
     DEB_RECOMMENDS
         "libsharemind-facility-loghard (>= 0.4.0)"
