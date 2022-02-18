@@ -28,7 +28,7 @@ FIND_PACKAGE(SharemindCMakeHelpers 1.6 REQUIRED)
 
 FIND_PROGRAM(HELP2MAN help2man)
 FIND_PACKAGE(Boost 1.62 COMPONENTS system filesystem REQUIRED)
-FIND_PACKAGE(SharemindCxxHeaders 0.8.0 REQUIRED)
+FIND_PACKAGE(SharemindCxxHeaders 0.9.0 REQUIRED)
 FIND_PACKAGE(SharemindLibAccessControlProcessFacility 0.3.0 REQUIRED)
 FIND_PACKAGE(SharemindLibConfiguration 0.5.0 REQUIRED)
 FIND_PACKAGE(SharemindLibFModapi 0.4.0 REQUIRED)
